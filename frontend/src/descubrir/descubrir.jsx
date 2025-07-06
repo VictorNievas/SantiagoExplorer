@@ -232,40 +232,180 @@ const PerfilModal = ({ usuario, onClose }) => {
 // Componente para cada post de etapa
 const EtapaPost = ({ etapa, onUsuarioClick }) => {
   const [liked, setLiked] = useState(false)
-  const [likes, setLikes] = useState(etapa.likes || 0)
+  const [likes, setLikes] = useState(etapa.likes || [])
+  const [comentarios, setComentarios] = useState(etapa.comentarios || [])
   const [showImageModal, setShowImageModal] = useState(false)
+  const [showComments, setShowComments] = useState(false)
+  const [newComment, setNewComment] = useState("")
+  const [loadingLike, setLoadingLike] = useState(false)
+  const [loadingComment, setLoadingComment] = useState(false)
 
-  // Simular likes persistentes basados en el ID de la etapa
+  // En el componente EtapaPost, agregar estado para usuarios de comentarios
+  const [usuariosComentarios, setUsuariosComentarios] = useState({})
+  const [usuarioActualData, setUsuarioActualData] = useState(null)
+
+  const usuarioActual = localStorage.getItem("usuario")
+
+  // Agregar useEffect para cargar datos del usuario actual
   useEffect(() => {
-    const likedPosts = JSON.parse(localStorage.getItem("likedPosts") || "{}")
-    if (likedPosts[etapa.id]) {
-      setLiked(true)
+    const cargarUsuarioActual = async () => {
+      if (usuarioActual) {
+        try {
+          const response = await fetch(`http://localhost:5000/api/usuarios/get_usuario?usuario_id=${usuarioActual}`)
+          if (response.ok) {
+            const userData = await response.json()
+            setUsuarioActualData(userData)
+          }
+        } catch (error) {
+          console.error("Error cargando usuario actual:", error)
+        }
+      }
+    }
+    cargarUsuarioActual()
+  }, [usuarioActual])
+
+  // Agregar useEffect para cargar usuarios de comentarios
+  useEffect(() => {
+    const cargarUsuariosComentarios = async () => {
+      const usuariosIds = comentarios.map((c) => c.usuario_id.$oid || c.usuario_id).filter(Boolean)
+      const usuariosUnicos = [...new Set(usuariosIds)]
+
+      const usuariosData = {}
+
+      for (const userId of usuariosUnicos) {
+        if (!usuariosComentarios[userId]) {
+          try {
+            const response = await fetch(`http://localhost:5000/api/usuarios/get_usuario?usuario_id=${userId}`)
+            if (response.ok) {
+              const userData = await response.json()
+              usuariosData[userId] = userData
+            }
+          } catch (error) {
+            console.error(`Error cargando usuario ${userId}:`, error)
+          }
+        }
+      }
+
+      if (Object.keys(usuariosData).length > 0) {
+        setUsuariosComentarios((prev) => ({ ...prev, ...usuariosData }))
+      }
     }
 
-    // Generar likes consistentes basados en el hash del ID
-    const hashCode = etapa.id.split("").reduce((a, b) => {
-      a = (a << 5) - a + b.charCodeAt(0)
-      return a & a
-    }, 0)
-    const consistentLikes = Math.abs(hashCode % 30) + 5 // Entre 5 y 35 likes
-    setLikes(consistentLikes + (likedPosts[etapa.id] ? 1 : 0))
-  }, [etapa.id])
+    if (comentarios.length > 0) {
+      cargarUsuariosComentarios()
+    }
+  }, [comentarios])
 
-  const handleLike = () => {
-    const likedPosts = JSON.parse(localStorage.getItem("likedPosts") || "{}")
+  // Verificar si el usuario actual ya dio like
+  useEffect(() => {
+    if (usuarioActual && likes.length > 0) {
+      const userLiked = likes.some((like) => {
+        const likeId = like.$oid || like
+        return likeId === usuarioActual
+      })
+      setLiked(userLiked)
+    }
+  }, [likes, usuarioActual])
 
-    if (liked) {
-      // Quitar like
-      delete likedPosts[etapa.id]
-      setLikes((prev) => prev - 1)
-    } else {
-      // Agregar like
-      likedPosts[etapa.id] = true
-      setLikes((prev) => prev + 1)
+  const handleLike = async () => {
+    if (!usuarioActual) {
+      alert("Debes iniciar sesión para dar like")
+      return
     }
 
-    localStorage.setItem("likedPosts", JSON.stringify(likedPosts))
-    setLiked(!liked)
+    if (loadingLike) return
+
+    setLoadingLike(true)
+
+    try {
+      const response = await fetch("http://localhost:5000/api/caminos/dar_like", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          usuario_id: usuarioActual,
+          otro_usuario_id: etapa.usuario_id,
+          camino_id: etapa.camino_id,
+          etapa_id: etapa.etapa_id,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        // Actualizar estado local
+        if (!liked) {
+          setLikes((prev) => [...prev, { $oid: usuarioActual }])
+          setLiked(true)
+        }
+      } else {
+        if (result.mensaje && result.mensaje.includes("ya dio like")) {
+          // El usuario ya había dado like
+          setLiked(true)
+        } else {
+          console.error("Error al dar like:", result.error)
+        }
+      }
+    } catch (error) {
+      console.error("Error al dar like:", error)
+      alert("Error al dar like. Inténtalo de nuevo.")
+    } finally {
+      setLoadingLike(false)
+    }
+  }
+
+  const handleComment = async () => {
+    if (!usuarioActual) {
+      alert("Debes iniciar sesión para comentar")
+      return
+    }
+
+    if (!newComment.trim()) {
+      alert("El comentario no puede estar vacío")
+      return
+    }
+
+    if (loadingComment) return
+
+    setLoadingComment(true)
+
+    try {
+      const response = await fetch("http://localhost:5000/api/caminos/comentar_etapa", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          usuario_id: usuarioActual,
+          otro_usuario_id: etapa.usuario_id,
+          camino_id: etapa.camino_id,
+          etapa_id: etapa.etapa_id,
+          texto: newComment.trim(),
+        }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        // Agregar comentario al estado local
+        const nuevoComentario = {
+          usuario_id: { $oid: usuarioActual },
+          texto: newComment.trim(),
+          fecha: new Date().toISOString(),
+        }
+        setComentarios((prev) => [...prev, nuevoComentario])
+        setNewComment("")
+      } else {
+        console.error("Error al comentar:", result.error)
+        alert("Error al enviar comentario")
+      }
+    } catch (error) {
+      console.error("Error al comentar:", error)
+      alert("Error al enviar comentario. Inténtalo de nuevo.")
+    } finally {
+      setLoadingComment(false)
+    }
   }
 
   const handleShare = () => {
@@ -425,23 +565,27 @@ const EtapaPost = ({ etapa, onUsuarioClick }) => {
             <div className="flex items-center space-x-4">
               <button
                 onClick={handleLike}
+                disabled={loadingLike}
                 className={`flex items-center space-x-2 px-3 py-2 rounded-full transition-all duration-200 ${
                   liked
                     ? "bg-red-100 text-red-600 hover:bg-red-200 scale-105"
                     : "text-gray-600 hover:bg-gray-100 hover:text-red-500"
-                }`}
+                } ${loadingLike ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <HeartIcon
                   className={`w-5 h-5 transition-all duration-200 ${
                     liked ? "fill-red-500 text-red-500 scale-110" : ""
                   }`}
                 />
-                <span className="text-sm font-medium">{likes}</span>
+                <span className="text-sm font-medium">{likes.length}</span>
               </button>
 
-              <button className="flex items-center space-x-2 px-3 py-2 rounded-full text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+              <button
+                onClick={() => setShowComments(!showComments)}
+                className="flex items-center space-x-2 px-3 py-2 rounded-full text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+              >
                 <MessageCircleIcon className="w-5 h-5" />
-                <span className="text-sm font-medium">Comentar</span>
+                <span className="text-sm font-medium">{comentarios.length}</span>
               </button>
             </div>
 
@@ -453,35 +597,205 @@ const EtapaPost = ({ etapa, onUsuarioClick }) => {
               <span className="text-sm font-medium">Compartir</span>
             </button>
           </div>
+
+          {/* Sección de comentarios */}
+          {showComments && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              {/* Escribir comentario */}
+              <div className="mb-4">
+                <div className="flex space-x-3">
+                  <img
+                    src={usuarioActualData?.foto || "/placeholder.svg?height=32&width=32"}
+                    alt="Tu foto"
+                    className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                    onError={(e) => {
+                      e.target.src = "/placeholder.svg?height=32&width=32"
+                    }}
+                  />
+                  <div className="flex-1">
+                    <textarea
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      placeholder="Escribe un comentario..."
+                      className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      rows="2"
+                    />
+                    <div className="flex justify-end mt-2">
+                      <button
+                        onClick={handleComment}
+                        disabled={loadingComment || !newComment.trim()}
+                        className={`px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors ${
+                          loadingComment || !newComment.trim() ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"
+                        }`}
+                      >
+                        {loadingComment ? "Enviando..." : "Comentar"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lista de comentarios */}
+              <div className="space-y-3 max-h-60 overflow-y-auto">
+                {comentarios.map((comentario, index) => {
+                  const usuarioId = comentario.usuario_id.$oid || comentario.usuario_id
+                  const usuarioComentario = usuariosComentarios[usuarioId]
+
+                  return (
+                    <div key={index} className="flex space-x-3">
+                      <img
+                        src={usuarioComentario?.foto || "/placeholder.svg?height=32&width=32"}
+                        alt={usuarioComentario?.nombre || "Usuario"}
+                        className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                        onError={(e) => {
+                          e.target.src = "/placeholder.svg?height=32&width=32"
+                        }}
+                      />
+                      <div className="flex-1">
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <span className="font-semibold text-sm text-gray-900">
+                              {usuarioComentario
+                                ? `${usuarioComentario.nombre} ${usuarioComentario.apellidos}`
+                                : "Usuario"}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {new Date(comentario.fecha).toLocaleDateString("es-ES", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-900">{comentario.texto}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+                {comentarios.length === 0 && (
+                  <p className="text-gray-500 text-sm text-center py-4">
+                    No hay comentarios aún. ¡Sé el primero en comentar!
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Modal para imagen completa */}
+      {/* Modal mejorado para imagen completa */}
       {showImageModal && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center p-4"
           onClick={() => setShowImageModal(false)}
         >
-          <div className="relative max-w-4xl max-h-full">
-            <button
-              onClick={() => setShowImageModal(false)}
-              className="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 transition-colors z-10"
-            >
-              <CloseIcon className="w-6 h-6" />
-            </button>
-            <img
-              src={etapa.imagen || "/placeholder.svg"}
-              alt={etapa.nombre_etapa}
-              className="max-w-full max-h-full object-contain rounded-lg"
-              onClick={(e) => e.stopPropagation()}
-            />
-            <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-70 text-white p-4 rounded-lg backdrop-blur-sm">
-              <h3 className="font-semibold text-lg mb-1">{etapa.nombre_etapa}</h3>
-              <p className="text-sm opacity-90">{etapa.nombre_camino}</p>
-              <p className="text-xs opacity-75 mt-2">
-                Por {etapa.usuario_nombre} {etapa.usuario_apellidos} •{" "}
-                {new Date(etapa.fecha).toLocaleDateString("es-ES")}
-              </p>
+          <div className="relative max-w-7xl max-h-full w-full">
+            {/* Botones de control */}
+            <div className="absolute top-4 right-4 z-10 flex space-x-2">
+              <button
+                onClick={() => setShowImageModal(false)}
+                className="bg-black/50 text-white rounded-full p-3 hover:bg-black/70 transition-colors backdrop-blur-sm"
+              >
+                <CloseIcon className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Imagen principal */}
+            <div className="flex items-center justify-center h-full">
+              <img
+                src={etapa.imagen || "/placeholder.svg"}
+                alt={etapa.nombre_etapa}
+                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+
+            {/* Información superpuesta */}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6 rounded-b-lg">
+              <div className="text-white">
+                <h3 className="text-2xl font-bold mb-2">{etapa.nombre_etapa}</h3>
+                <div className="flex items-center space-x-4 mb-3">
+                  <div className="flex items-center space-x-2">
+                    <RouteIcon className="w-5 h-5" />
+                    <span className="text-lg">{etapa.nombre_camino}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm">
+                      {etapa.distancia_km} km
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <img
+                      src={etapa.usuario_foto || "/placeholder.svg?height=40&width=40"}
+                      alt={etapa.usuario_nombre}
+                      className="w-10 h-10 rounded-full object-cover border-2 border-white/30"
+                    />
+                    <div>
+                      <p className="font-semibold">
+                        {etapa.usuario_nombre} {etapa.usuario_apellidos}
+                      </p>
+                      <p className="text-sm opacity-90">
+                        {new Date(etapa.fecha).toLocaleDateString("es-ES", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Acciones en el modal */}
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleLike()
+                      }}
+                      disabled={loadingLike}
+                      className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all backdrop-blur-sm ${
+                        liked
+                          ? "bg-red-500/80 text-white hover:bg-red-600/80"
+                          : "bg-white/20 text-white hover:bg-white/30"
+                      }`}
+                    >
+                      <HeartIcon className={`w-5 h-5 ${liked ? "fill-white" : ""}`} />
+                      <span className="font-medium">{likes.length}</span>
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setShowComments(!showComments)
+                      }}
+                      className="flex items-center space-x-2 px-4 py-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-all backdrop-blur-sm"
+                    >
+                      <MessageCircleIcon className="w-5 h-5" />
+                      <span className="font-medium">{comentarios.length}</span>
+                    </button>
+
+                    {etapa.lat && etapa.lon && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openGoogleMaps()
+                        }}
+                        className="flex items-center space-x-2 px-4 py-2 rounded-full bg-blue-500/80 text-white hover:bg-blue-600/80 transition-all backdrop-blur-sm"
+                      >
+                        <MapPinIcon className="w-5 h-5" />
+                        <span className="font-medium">Ubicación</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {etapa.descripcion && <p className="mt-3 text-sm opacity-90 line-clamp-2">{etapa.descripcion}</p>}
+              </div>
             </div>
           </div>
         </div>
@@ -489,7 +803,6 @@ const EtapaPost = ({ etapa, onUsuarioClick }) => {
     </>
   )
 }
-
 
 function DescubrirSocial() {
   const [etapas, setEtapas] = useState([])
@@ -555,6 +868,8 @@ function DescubrirSocial() {
                       etapasFormateadas.push({
                         id: `${usuario._id.$oid || usuario._id}_${caminoId}_${etapaId}_${etapaCompletada.fecha}`,
                         usuario_id: usuario._id.$oid || usuario._id,
+                        camino_id: caminoId,
+                        etapa_id: etapaId,
                         usuario_nombre: usuario.nombre || "Usuario",
                         usuario_apellidos: usuario.apellidos || "",
                         usuario_nivel: usuario.nivel.$numberInt || usuario.nivel || 1,
@@ -567,7 +882,8 @@ function DescubrirSocial() {
                         fecha: etapaCompletada.fecha,
                         lat: etapaCompletada.lat?.$numberDouble || etapaCompletada.lat || null,
                         lon: etapaCompletada.lon?.$numberDouble || etapaCompletada.lon || null,
-                        likes: Math.floor(Math.random() * 25) + 1, // Simulado por ahora
+                        likes: etapaCompletada.likes || [],
+                        comentarios: etapaCompletada.comentarios || [],
                         // Datos adicionales para el modal del usuario
                         etapas_completadas:
                           usuario.caminos?.reduce((total, c) => total + (c.etapas_completadas?.length || 0), 0) || 0,

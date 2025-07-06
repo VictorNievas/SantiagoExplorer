@@ -142,12 +142,33 @@ def get_usuario():
 
         # Convertir ObjectId a string
         usuario['_id'] = str(usuario['_id'])
+
+        # Serializar caminos y dentro likes y comentarios
         for camino in usuario.get('caminos', []):
             camino['id_camino'] = str(camino.get('id_camino', ''))
 
+            for etapa in camino.get('etapas_completadas', []):
+                if 'id_etapa' in etapa and isinstance(etapa['id_etapa'], ObjectId):
+                    etapa['id_etapa'] = str(etapa['id_etapa'])
+
+                if 'likes' in etapa:
+                    etapa['likes'] = [str(uid) for uid in etapa['likes']]
+
+                if 'comentarios' in etapa:
+                    for comentario in etapa['comentarios']:
+                        if 'usuario_id' in comentario:
+                            comentario['usuario_id'] = str(comentario['usuario_id'])
+
+        # Serializar seguidores, siguiendo y solicitudesSeguimiento
+        usuario['seguidores'] = [str(uid) for uid in usuario.get('seguidores', [])]
+        usuario['siguiendo'] = [str(uid) for uid in usuario.get('siguiendo', [])]
+        usuario['solicitudesSeguimiento'] = [str(uid) for uid in usuario.get('solicitudesSeguimiento', [])]
+
         return jsonify(usuario), 200
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
     
 
 @usuarios.route('/seguir', methods=['POST'])
@@ -237,15 +258,36 @@ def gestionar_solicitud():
 @usuarios.route('/get_usuarios', methods=['GET'])
 def get_usuarios():
     usuarios = list(mongo.db.usuarios.find({}, {'contrasena': 0}))
-    
+
     for usuario in usuarios:
         usuario['_id'] = str(usuario['_id'])
-        usuario['caminos'] = [
-            {
-                'id_camino': str(camino.get('id_camino', '')),
-                'etapas_completadas': camino.get('etapas_completadas', [])
-            } for camino in usuario.get('caminos', [])
-        ]
+        caminos_serializados = []
+        for camino in usuario.get('caminos', []):
+            camino_id = camino.get('id_camino')
+            etapas_completadas = camino.get('etapas_completadas', [])
+
+            for etapa in etapas_completadas:
+                # Serializar likes
+                if 'likes' in etapa:
+                    etapa['likes'] = [str(user_id) for user_id in etapa['likes']]
+                # Serializar comentarios
+                if 'comentarios' in etapa:
+                    for comentario in etapa['comentarios']:
+                        if 'usuario_id' in comentario:
+                            comentario['usuario_id'] = str(comentario['usuario_id'])
+                        # También podrías formatear la fecha si quieres
+
+                # Serializar id_etapa si es ObjectId
+                if 'id_etapa' in etapa and isinstance(etapa['id_etapa'], ObjectId):
+                    etapa['id_etapa'] = str(etapa['id_etapa'])
+
+            caminos_serializados.append({
+                'id_camino': str(camino_id) if camino_id else None,
+                'etapas_completadas': etapas_completadas
+            })
+
+        usuario['caminos'] = caminos_serializados
+
         usuario['seguidores'] = [str(s) for s in usuario.get('seguidores', [])]
         usuario['siguiendo'] = [str(s) for s in usuario.get('siguiendo', [])]
         usuario['solicitudesSeguimiento'] = [str(s) for s in usuario.get('solicitudesSeguimiento', [])]
