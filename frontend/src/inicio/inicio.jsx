@@ -175,12 +175,11 @@ function Inicio() {
             alert("¡Etapa completada exitosamente!")
             //Anadir un nivel al usuario y anadir los kilometros recorridos
             try{
-              const response = await fetch("http://localhost:5000/api/usuarios/get_camino", {
-                  method: 'GET',
-                  headers: { 'Content-Type': 'application/json' },
-                  params: {camino_id: caminoId}
-              })
-
+              const response = await fetch(`http://localhost:5000/api/caminos/get_camino?camino_id=${caminoId}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+              });
+              
               const camino = await response.json()
               if(response.ok) {
                 const distanciaRecorrida = camino.etapas[etapaId-1].distancia_km || 0

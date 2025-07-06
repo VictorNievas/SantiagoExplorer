@@ -82,9 +82,14 @@ export default function Navbar() {
   const [isProfileOpen, setIsProfileOpen] = useState(false)
 
   const navigationItems = [
-    { name: "Inicio", href: "/", icon: HomeIcon },
+    { name: "Inicio", href: "/inicio", icon: HomeIcon },
     { name: "Descubrir", href: "/descubrir", icon: CompassIcon },
   ]
+
+  function cerrarSesion(){
+    localStorage.removeItem("usuario")
+    window.location.href = "/login"
+  }
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
@@ -153,6 +158,7 @@ export default function Navbar() {
                       <button
                         onClick={() => {
                           setIsProfileOpen(false)
+                          cerrarSesion()
                           console.log("Cerrando sesión...")
                         }}
                         className="flex items-center w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
@@ -213,6 +219,7 @@ export default function Navbar() {
                 className="flex items-center space-x-3 text-red-600 hover:text-red-700 block px-3 py-2 rounded-md text-base font-medium w-full text-left hover:bg-red-50 transition-colors duration-200"
                 onClick={() => {
                   setIsOpen(false)
+                  cerrarSesion()
                   console.log("Cerrando sesión...")
                 }}
               >

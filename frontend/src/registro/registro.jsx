@@ -92,6 +92,7 @@ function Register({ onSwitchToLogin }) {
     email: "",
     password: "",
     foto: null,
+    publico: false, // Campo para indicar si el perfil es público
   })
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -99,12 +100,11 @@ function Register({ onSwitchToLogin }) {
   const [photoPreview, setPhotoPreview] = useState(null)
 
   const handleChange = (e) => {
+    const { name, value, type, checked } = e.target
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: type === "checkbox" ? checked : value,
     })
-    // Limpiar error cuando el usuario empiece a escribir
-    if (error) setError("")
   }
 
   const handlePhotoChange = (e) => {
@@ -157,6 +157,7 @@ function Register({ onSwitchToLogin }) {
       if (formData.foto) {
         formDataToSend.append("foto", formData.foto)
       }
+      formDataToSend.append("publico", formData.publico)
 
       // Aquí harías la llamada a tu API
       const response = await fetch("http://localhost:5000/api/usuarios/crear_usuario", {
@@ -336,6 +337,34 @@ function Register({ onSwitchToLogin }) {
               </div>
               <p className="text-xs text-gray-500 mt-1">Mínimo 6 caracteres</p>
             </div>
+
+            {/* Nuevo: Público/Privado */}
+            <div className="flex items-center space-x-3">
+              <label htmlFor="publico" className="relative inline-flex items-center cursor-pointer">
+                <input
+                  id="publico"
+                  name="publico"
+                  type="checkbox"
+                  checked={formData.publico}
+                  onChange={handleChange}
+                  className="sr-only"
+                />
+                <div
+                  className={`w-11 h-6 rounded-full transition-colors duration-300 ${
+                    formData.publico ? "bg-green-600" : "bg-gray-300"
+                  }`}
+                ></div>
+                <div
+                  className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-300 ${
+                    formData.publico ? "translate-x-5" : "translate-x-0"
+                  }`}
+                ></div>
+              </label>
+              <label htmlFor="publico" className="block text-sm font-medium text-gray-700 select-none">
+                ¿Perfil Público?
+              </label>
+            </div>
+
 
             {/* Submit Button */}
             <button

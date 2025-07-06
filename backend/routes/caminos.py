@@ -147,7 +147,7 @@ def caminos_usuario():
                 'id_camino': str(camino_id) if camino_id else None,
                 'etapas_completadas': camino.get('etapas_completadas', [])
             }
-        caminos_serializados.append(camino_serializado)
+            caminos_serializados.append(camino_serializado)
         print("Caminos serializados:", caminos_serializados)
         return jsonify(caminos_serializados), 200
 
@@ -162,7 +162,8 @@ def caminos_usuario():
 
 @caminos.route('/get_camino', methods=['GET'])
 def get_camino():
-    id_camino = request.args.get('id_camino')
+    id_camino = request.args.get('camino_id')
+    print("ID de camino recibido:", id_camino)
     if not id_camino:
         return jsonify({"error": "ID de camino no proporcionado"}), 400
     try:

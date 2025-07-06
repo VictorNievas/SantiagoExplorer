@@ -24,6 +24,7 @@ def crear_usuario():
     foto = request.files.get('foto')
     password = request.form.get('password')
     gmail = request.form.get('email')
+    publico = request.form.get('publico')
 
     print(f"Datos recibidos: {nombre}, {apellidos}, {gmail}, {foto}, {password}")
     if not all([nombre, apellidos, foto, password, gmail]):
@@ -48,6 +49,10 @@ def crear_usuario():
         "logros": [],
         "caminos": [],
         "distancia_recorrida": 0.0,
+        "publico": publico,
+        "seguidores": [],
+        "siguiendo": [],
+        "solicitudesSeguimiento": [],
     }
 
     mongo.db.usuarios.insert_one(nuevo_usuario)
@@ -79,3 +84,170 @@ def login_usuario():
         return jsonify({'mensaje': 'Inicio de sesión exitoso', 'usuario': usuario}), 200
     else:
         return jsonify({'error': 'Contraseña incorrecta'}), 401
+
+@usuarios.route('/actualizar_distancia', methods=['POST'])
+def actualizar_distancia_recorrida():
+    data = request.get_json()
+    usuario_id = data.get('usuario_id')
+    distancia = data.get('distancia_recorrida')
+
+    if not usuario_id or not distancia:
+        return jsonify({'error': 'Faltan el ID del usuario o la distancia'}), 400
+
+    try:
+        distancia = float(distancia)
+    except ValueError:
+        return jsonify({'error': 'La distancia debe ser un número'}), 400
+
+    mongo.db.usuarios.update_one(
+        {'_id': ObjectId(usuario_id)},
+        {'$inc': {'distancia_recorrida': distancia}}
+    )
+
+    return jsonify({'mensaje': 'Distancia actualizada exitosamente'}), 200
+
+@usuarios.route('/actualizar_nivel', methods=['POST'])
+def actualizar_nivel_usuario():
+    data = request.get_json()
+    usuario_id = data.get('usuario_id')
+    nuevo_nivel = data.get('nivel')
+
+    if not usuario_id or not nuevo_nivel:
+        return jsonify({'error': 'Faltan el ID del usuario o el nuevo nivel'}), 400
+
+    try:
+        nuevo_nivel = int(nuevo_nivel)
+    except ValueError:
+        return jsonify({'error': 'El nivel debe ser un número entero'}), 400
+
+    mongo.db.usuarios.update_one(
+        {'_id': ObjectId(usuario_id)},
+        {'$inc': {'nivel': nuevo_nivel}}
+    )
+
+    return jsonify({'mensaje': 'Nivel actualizado exitosamente'}), 200
+
+
+@usuarios.route('/get_usuario', methods=['GET'])
+def get_usuario():
+    usuario_id = request.args.get('usuario_id')
+
+    if not usuario_id:
+        return jsonify({'error': 'ID de usuario no proporcionado'}), 400
+
+    try:
+        usuario = mongo.db.usuarios.find_one({'_id': ObjectId(usuario_id)})
+        if not usuario:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+
+        # Convertir ObjectId a string
+        usuario['_id'] = str(usuario['_id'])
+        for camino in usuario.get('caminos', []):
+            camino['id_camino'] = str(camino.get('id_camino', ''))
+
+        return jsonify(usuario), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+
+@usuarios.route('/seguir', methods=['POST'])
+def seguir_usuario():
+    data = request.get_json()
+    usuario_id = data.get('usuario_id')
+    usuario_a_seguir_id = data.get('usuario_a_seguir_id')
+
+    if not usuario_id or not usuario_a_seguir_id:
+        return jsonify({'error': 'Faltan el ID del usuario o el usuario a seguir'}), 400
+
+    if usuario_id == usuario_a_seguir_id:
+        return jsonify({'error': 'No puedes seguirte a ti mismo'}), 400
+
+    try:
+        usuario_a_seguir = mongo.db.usuarios.find_one({'_id': ObjectId(usuario_a_seguir_id)})
+
+        if not usuario_a_seguir:
+            return jsonify({'error': 'Usuario a seguir no encontrado'}), 404
+
+        if usuario_a_seguir.get('publico', False):
+            # Perfil público: seguir directamente
+            mongo.db.usuarios.update_one(
+                {'_id': ObjectId(usuario_id)},
+                {'$addToSet': {'siguiendo': ObjectId(usuario_a_seguir_id)}}
+            )
+            mongo.db.usuarios.update_one(
+                {'_id': ObjectId(usuario_a_seguir_id)},
+                {'$addToSet': {'seguidores': ObjectId(usuario_id)}}
+            )
+            return jsonify({'mensaje': 'Usuario seguido exitosamente'}), 200
+        else:
+            # Perfil privado: crear solicitud pendiente
+            mongo.db.usuarios.update_one(
+                {'_id': ObjectId(usuario_a_seguir_id)},
+                {'$addToSet': {'solicitudesSeguimiento': ObjectId(usuario_id)}}
+            )
+            return jsonify({'mensaje': 'Solicitud de seguimiento enviada'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@usuarios.route('/gestionar_solicitud', methods=['POST'])
+def gestionar_solicitud():
+    data = request.get_json()
+    usuario_privado_id = data.get('usuario_privado_id')          # quien recibe la solicitud
+    solicitante_id = data.get('solicitante_id')                  # quien envió la solicitud
+    accion = data.get('accion')                                  # 'aceptar' o 'rechazar'
+
+    if not usuario_privado_id or not solicitante_id or accion not in ['aceptar', 'rechazar']:
+        return jsonify({'error': 'Faltan datos o acción inválida'}), 400
+
+    try:
+        usuario_privado = mongo.db.usuarios.find_one({'_id': ObjectId(usuario_privado_id)})
+        if not usuario_privado:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+
+        if ObjectId(solicitante_id) not in usuario_privado.get('solicitudesSeguimiento', []):
+            return jsonify({'error': 'Solicitud no encontrada'}), 404
+
+        if accion == 'aceptar':
+            # Añadir seguidores/siguiendo
+            mongo.db.usuarios.update_one(
+                {'_id': ObjectId(usuario_privado_id)},
+                {
+                    '$addToSet': {'seguidores': ObjectId(solicitante_id)},
+                    '$pull': {'solicitudesSeguimiento': ObjectId(solicitante_id)}
+                }
+            )
+            mongo.db.usuarios.update_one(
+                {'_id': ObjectId(solicitante_id)},
+                {'$addToSet': {'siguiendo': ObjectId(usuario_privado_id)}}
+            )
+            return jsonify({'mensaje': 'Solicitud aceptada, ahora eres seguidor'}), 200
+
+        else:  # rechazar
+            mongo.db.usuarios.update_one(
+                {'_id': ObjectId(usuario_privado_id)},
+                {'$pull': {'solicitudesSeguimiento': ObjectId(solicitante_id)}}
+            )
+            return jsonify({'mensaje': 'Solicitud rechazada'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+@usuarios.route('/get_usuarios', methods=['GET'])
+def get_usuarios():
+    usuarios = list(mongo.db.usuarios.find({}, {'contrasena': 0}))
+    
+    for usuario in usuarios:
+        usuario['_id'] = str(usuario['_id'])
+        usuario['caminos'] = [
+            {
+                'id_camino': str(camino.get('id_camino', '')),
+                'etapas_completadas': camino.get('etapas_completadas', [])
+            } for camino in usuario.get('caminos', [])
+        ]
+        usuario['seguidores'] = [str(s) for s in usuario.get('seguidores', [])]
+        usuario['siguiendo'] = [str(s) for s in usuario.get('siguiendo', [])]
+        usuario['solicitudesSeguimiento'] = [str(s) for s in usuario.get('solicitudesSeguimiento', [])]
+
+    return jsonify(usuarios), 200
