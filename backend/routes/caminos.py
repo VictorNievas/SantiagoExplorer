@@ -208,39 +208,106 @@ def dar_like():
         return jsonify({"error": "Faltan datos obligatorios"}), 400
 
     try:
+        usuario_oid = ObjectId(usuario_id)
+        otro_usuario_oid = ObjectId(otro_usuario_id)
+        camino_oid = ObjectId(camino_id)
+
         # Validar que ambos usuarios existen
-        if not mongo.db.usuarios.find_one({"_id": ObjectId(usuario_id)}):
+        usuario_e = mongo.db.usuarios.find_one({"_id": usuario_oid})
+        if not usuario_e:
             return jsonify({"error": "Usuario que da like no encontrado"}), 404
 
-        if not mongo.db.usuarios.find_one({"_id": ObjectId(otro_usuario_id)}):
+        usuario_r = mongo.db.usuarios.find_one({"_id": otro_usuario_oid})
+        if not usuario_e:
             return jsonify({"error": "Usuario dueño del post no encontrado"}), 404
+        
+        # Validar que el camino y la etapa existen
+        camino = mongo.db.caminos.find_one({"_id": ObjectId(camino_id)})
+        if not camino:
+            return jsonify({"error": "Camino no encontrado"}), 404
+        
+        etapas = camino.get('etapas_completadas', [])
+        etapa_nombre = None
+        for etapa in etapas:
+            if etapa.get('id_etapa') == etapa_id:
+                etapa_nombre = etapa.get('nombre', f'Etapa {etapa_id}')
+                break
 
-        # Actualizar el documento usando filtro + positional operators
-        result = mongo.db.usuarios.update_one(
+        # Por si no se encuentra, poner uno genérico
+        if not etapa_nombre:
+            etapa_nombre = f"Etapa {etapa_id}"
+
+        # Buscar si el like ya existe
+        usuario_ya_dio_like = mongo.db.usuarios.find_one(
             {
-                "_id": ObjectId(otro_usuario_id),
-                "caminos.id_camino": ObjectId(camino_id),
-                "caminos.etapas_completadas.id_etapa": etapa_id,
-                "caminos.etapas_completadas.likes": {"$ne": ObjectId(usuario_id)}  # para evitar likes repetidos
-            },
-            {
-                "$addToSet": {
-                    "caminos.$[camino].etapas_completadas.$[etapa].likes": ObjectId(usuario_id)
+                "_id": otro_usuario_oid,
+                "caminos.id_camino": camino_oid,
+                "caminos.etapas_completadas": {
+                    "$elemMatch": {
+                        "id_etapa": etapa_id,
+                        "likes": usuario_oid
+                    }
                 }
             },
-            array_filters=[
-                {"camino.id_camino": ObjectId(camino_id)},
-                {"etapa.id_etapa": etapa_id}
-            ]
+            {"_id": 1}
         )
 
-        if result.modified_count == 0:
-            return jsonify({"mensaje": "El usuario ya dio like o la etapa no existe"}), 200
+        if usuario_ya_dio_like:
+            # Quitar el like (pull)
+            result = mongo.db.usuarios.update_one(
+                {
+                    "_id": otro_usuario_oid,
+                    "caminos.id_camino": camino_oid,
+                },
+                {
+                    "$pull": {
+                        "caminos.$[camino].etapas_completadas.$[etapa].likes": usuario_oid
+                    }
+                },
+                array_filters=[
+                    {"camino.id_camino": camino_oid},
+                    {"etapa.id_etapa": etapa_id}
+                ]
+            )
+            mensaje = "Like removido correctamente"
+        else:
+            # Añadir el like (addToSet)
+            result = mongo.db.usuarios.update_one(
+                {
+                    "_id": otro_usuario_oid,
+                    "caminos.id_camino": camino_oid,
+                    "caminos.etapas_completadas.id_etapa": etapa_id,
+                },
+                {
+                    "$addToSet": {
+                        "caminos.$[camino].etapas_completadas.$[etapa].likes": usuario_oid
+                    }
+                },
+                array_filters=[
+                    {"camino.id_camino": camino_oid},
+                    {"etapa.id_etapa": etapa_id}
+                ]
+            )
+            mensaje = "Like registrado correctamente"
+            mongo.db.notificaciones.insert_one({
+                "id_usuario_r": ObjectId(otro_usuario_oid),
+                "tipo": "like",
+                "id_usuario_e": ObjectId(usuario_oid),
+                "id_camino": ObjectId(camino_oid),
+                "id_etapa": etapa_id,
+                "fecha": datetime.now().isoformat(),
+                "leido": False,
+                "mensaje": f"{usuario_e['nombre']} {usuario_e['apellidos']} ha dado like a tu etapa {etapa_nombre} del camino {camino['nombre']}"
+            })
 
-        return jsonify({"mensaje": "Like registrado correctamente"}), 200
+        if result.modified_count == 0:
+            return jsonify({"mensaje": "No se pudo actualizar el like. Quizás la etapa no existe."}), 400
+
+        return jsonify({"mensaje": mensaje}), 200
 
     except InvalidId:
         return jsonify({"error": "ID inválido"}), 400
+
     
 @caminos.route('/comentar_etapa', methods=['POST'])
 def comentar_etapa():
@@ -255,16 +322,34 @@ def comentar_etapa():
 
     try:
         # Validar que el usuario existe
-        if not mongo.db.usuarios.find_one({"_id": ObjectId(usuario_id)}):
+        usuario_e = mongo.db.usuarios.find_one({"_id": ObjectId(usuario_id)})
+        if not usuario_e:
             return jsonify({"error": "Usuario que comenta no encontrado"}), 404
 
-        if not mongo.db.usuarios.find_one({"_id": ObjectId(otro_usuario_id)}):
+        usuario_r = mongo.db.usuarios.find_one({"_id": ObjectId(otro_usuario_id)})
+        if not usuario_r:
             return jsonify({"error": "Usuario dueño del post no encontrado"}), 404
 
+        # Validar que el camino y la etapa existen
+        camino = mongo.db.caminos.find_one({"_id": ObjectId(camino_id)})
+        if not camino:
+            return jsonify({"error": "Camino no encontrado"}), 404
+        
+        etapas = camino.get('etapas_completadas', [])
+        etapa_nombre = None
+        for etapa in etapas:
+            if etapa.get('id_etapa') == etapa_id:
+                etapa_nombre = etapa.get('nombre', f'Etapa {etapa_id}')
+                break
+
+        # Por si no se encuentra, poner uno genérico
+        if not etapa_nombre:
+            etapa_nombre = f"Etapa {etapa_id}"
+        
         comentario = {
             "usuario_id": ObjectId(usuario_id),
             "texto": texto,
-            "fecha": datetime.utcnow().isoformat()
+            "fecha": datetime.now().isoformat()  # Guardar la fecha en formato ISO
         }
 
         result = mongo.db.usuarios.update_one(
@@ -286,6 +371,17 @@ def comentar_etapa():
 
         if result.modified_count == 0:
             return jsonify({"error": "Etapa no encontrada"}), 404
+        
+        mongo.db.notificaciones.insert_one({
+                "id_usuario_r": ObjectId(otro_usuario_id),
+                "tipo": "comentario",
+                "id_usuario_e": ObjectId(usuario_id),
+                "id_camino": ObjectId(camino_id),
+                "id_etapa": etapa_id,
+                "fecha": datetime.now().isoformat(),
+                "leido": False,
+                "mensaje": f"{usuario_e['nombre']} {usuario_e['apellidos']} ha comentado en tu etapa {etapa_nombre} del camino {camino['nombre']}"
+        })
 
         return jsonify({"mensaje": "Comentario añadido correctamente"}), 200
 

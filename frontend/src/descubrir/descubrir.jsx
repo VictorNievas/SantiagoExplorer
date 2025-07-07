@@ -131,6 +131,102 @@ const LoadingSpinner = () => (
 
 // Componente para mostrar el perfil del usuario en modal
 const PerfilModal = ({ usuario, onClose }) => {
+  const [estadoRelacion, setEstadoRelacion] = useState("ninguna");
+  // Puede ser: "ninguna", "pendiente", "siguiendo"
+  const [usuarioActualData, setUsuarioActualData] = useState(null)
+  const usuarioActual = localStorage.getItem("usuario")
+  useEffect(() => {
+    const cargarUsuarioActual = async () => {
+      if (usuarioActual) {
+        try {
+          const response = await fetch(`http://localhost:5000/api/usuarios/get_usuario?usuario_id=${usuarioActual}`)
+          if (response.ok) {
+            const userData = await response.json()
+            setUsuarioActualData(userData)
+          }
+          // Verificar estado de relación
+          const responseRelacion = await fetch(`http://localhost:5000/api/usuarios/relacion?usuario_id_e=${usuarioActual}&usuario_id_r=${usuario._id}`)
+          if (responseRelacion.ok) {
+            const relacionData = await responseRelacion.json()
+            console.log("Estado de relación:", relacionData)
+            if (relacionData) {
+              setEstadoRelacion(relacionData.relacion);
+            } else {
+              setEstadoRelacion("ninguna");
+            }
+          }
+        } catch (error) {
+          console.error("Error cargando usuario actual:", error)
+        }
+      }
+    }
+    cargarUsuarioActual()
+  }, [usuarioActual])
+
+  const handleEnviarSolicitud = async () => {
+    const response = await fetch("http://localhost:5000/api/usuarios/seguir", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        usuario_id: usuarioActual,
+        usuario_a_seguir_id: usuario._id,
+      }),
+    })
+    if (response.ok) {
+      if(usuario.publico === false) {
+      setEstadoRelacion("pendiente");
+      }
+      else{
+        setEstadoRelacion("siguiendo");
+      }
+    } else {
+      const errorData = await response.json();
+      console.error("Error al enviar solicitud:", errorData.error);
+      alert(errorData.error || "Error al enviar solicitud");
+    }
+  };
+
+  const handleCancelarSolicitud = async () => {
+    const response = await fetch("http://localhost:5000/api/usuarios/cancelar_solicitud", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        usuario_id: usuarioActual,
+        destinatario_id: usuario._id,
+      }),
+    })
+    if (response.ok) {
+      setEstadoRelacion("ninguna");
+    } else {
+      const errorData = await response.json();
+      console.error("Error al cancelar solicitud:", errorData.error);
+      alert(errorData.error || "Error al cancelar solicitud");
+    }
+  };
+
+  const handleDejarDeSeguir = async () => {
+    const response = await fetch("http://localhost:5000/api/usuarios/dejar_seguir", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        usuario_id: usuarioActual,
+        usuario_a_dejar_id: usuario._id,
+      }),
+    })
+    if (response.ok) {
+      setEstadoRelacion("ninguna");
+    } else {
+      const errorData = await response.json();
+      console.error("Error al cancelar solicitud:", errorData.error);
+      alert(errorData.error || "Error al cancelar solicitud");
+    }
+  };
   if (!usuario) return null
 
   return (
@@ -157,16 +253,56 @@ const PerfilModal = ({ usuario, onClose }) => {
                   <span className="text-sm text-blue-600 font-medium">Nivel {usuario.nivel || 1}</span>
                   <span className="text-sm text-gray-500">{usuario.etapas_completadas || 0} etapas completadas</span>
                 </div>
+                <div className="flex items-center space-x-4 mt-1">
+                  <span className="text-sm text-gray-600">
+                    <strong>{usuario.seguidores?.length || 0}</strong> seguidores
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    <strong>{usuario.seguidos?.length || 0}</strong> seguidos
+                  </span>
+                </div>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <CloseIcon className="w-6 h-6" />
-            </button>
+
+            <div className="flex items-center space-x-2">
+              {/* Botón dinámico de seguir */}
+              {estadoRelacion === "siguiendo" && (
+                <button
+                  onClick={handleDejarDeSeguir}
+                  className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
+                >
+                  Siguiendo
+                </button>
+              )}
+
+              {estadoRelacion === "pendiente" && (
+                <button
+                  onClick={handleCancelarSolicitud}
+                  className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-colors"
+                >
+                  Solicitud enviada
+                </button>
+              )}
+
+              {estadoRelacion === "ninguna" && (
+                <button
+                  onClick={handleEnviarSolicitud}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Seguir
+                </button>
+              )}
+
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <CloseIcon className="w-6 h-6" />
+              </button>
+            </div>
           </div>
         </div>
+
 
         {/* Estadísticas del Usuario */}
         <div className="p-6">
@@ -298,62 +434,66 @@ const EtapaPost = ({ etapa, onUsuarioClick }) => {
 
   // Verificar si el usuario actual ya dio like
   useEffect(() => {
-    if (usuarioActual && likes.length > 0) {
-      const userLiked = likes.some((like) => {
-        const likeId = like.$oid || like
-        return likeId === usuarioActual
-      })
-      setLiked(userLiked)
-    }
-  }, [likes, usuarioActual])
-
-  const handleLike = async () => {
-    if (!usuarioActual) {
-      alert("Debes iniciar sesión para dar like")
-      return
-    }
-
-    if (loadingLike) return
-
-    setLoadingLike(true)
-
-    try {
-      const response = await fetch("http://localhost:5000/api/caminos/dar_like", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          usuario_id: usuarioActual,
-          otro_usuario_id: etapa.usuario_id,
-          camino_id: etapa.camino_id,
-          etapa_id: etapa.etapa_id,
-        }),
-      })
-
-      const result = await response.json()
-
-      if (response.ok) {
-        // Actualizar estado local
-        if (!liked) {
-          setLikes((prev) => [...prev, { $oid: usuarioActual }])
-          setLiked(true)
-        }
-      } else {
-        if (result.mensaje && result.mensaje.includes("ya dio like")) {
-          // El usuario ya había dado like
-          setLiked(true)
-        } else {
-          console.error("Error al dar like:", result.error)
-        }
-      }
-    } catch (error) {
-      console.error("Error al dar like:", error)
-      alert("Error al dar like. Inténtalo de nuevo.")
-    } finally {
-      setLoadingLike(false)
-    }
+  if (usuarioActual && likes.length > 0) {
+    const userLiked = likes.some((like) => {
+      const likeId = like.$oid || like
+      return likeId === usuarioActual
+    })
+    setLiked(userLiked)
+  } else {
+    // Si no hay likes o usuario actual, marcar no liked
+    setLiked(false)
   }
+}, [likes, usuarioActual])
+
+const handleLike = async () => {
+  if (!usuarioActual) {
+    alert("Debes iniciar sesión para dar like")
+    return
+  }
+
+  if (loadingLike) return
+
+  setLoadingLike(true)
+
+  try {
+    const response = await fetch("http://localhost:5000/api/caminos/dar_like", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        usuario_id: usuarioActual,
+        otro_usuario_id: etapa.usuario_id,
+        camino_id: etapa.camino_id,
+        etapa_id: etapa.etapa_id,
+      }),
+    })
+
+    const result = await response.json()
+
+    if (response.ok) {
+      if (!liked) {
+        // Si antes no tenía like, lo añadimos
+        setLikes((prev) => [...prev, { $oid: usuarioActual }])
+        setLiked(true)
+      } else {
+        // Si antes tenía like, lo quitamos
+        setLikes((prev) => prev.filter(like => (like.$oid || like) !== usuarioActual))
+        setLiked(false)
+      }
+    } else {
+      console.error("Error al dar like:", result.error)
+      alert(result.error || "Error al dar like")
+    }
+  } catch (error) {
+    console.error("Error al dar like:", error)
+    alert("Error al dar like. Inténtalo de nuevo.")
+  } finally {
+    setLoadingLike(false)
+  }
+}
+
 
   const handleComment = async () => {
     if (!usuarioActual) {

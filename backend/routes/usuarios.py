@@ -7,6 +7,8 @@ import bcrypt
 import cloudinary
 import cloudinary.uploader
 from cloudinary import api
+from datetime import datetime
+import traceback
 
 usuarios = Blueprint('usuarios', __name__)
 
@@ -80,6 +82,9 @@ def login_usuario():
         # Devuelve solo algunos datos, sin la contraseña
         del usuario['contrasena']
         del usuario['caminos']
+        del usuario['seguidores']
+        del usuario['siguiendo']
+        del usuario['solicitudesSeguimiento']
         usuario['_id'] = str(usuario['_id'])
         return jsonify({'mensaje': 'Inicio de sesión exitoso', 'usuario': usuario}), 200
     else:
@@ -169,7 +174,40 @@ def get_usuario():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-    
+@usuarios.route('/get_solicitudes', methods=['GET'])
+def get_solicitudes():
+    usuario_id = request.args.get('usuario_id')
+
+    if not usuario_id:
+        return jsonify({'error': 'ID de usuario no proporcionado'}), 400
+
+    try:
+        usuario = mongo.db.usuarios.find_one({'_id': ObjectId(usuario_id)}, {'solicitudesSeguimiento': 1})
+        if not usuario:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+
+        solicitudes_ids = usuario.get('solicitudesSeguimiento', [])
+        
+        if not solicitudes_ids:
+            return jsonify([]), 200
+
+        # Buscar todos los usuarios con esos IDs de golpe
+        solicitudes_usuarios = list(
+            mongo.db.usuarios.find(
+                {'_id': {'$in': solicitudes_ids}},
+                {'nombre': 1, 'apellidos': 1, 'foto': 1}
+            )
+        )
+
+        # Convertir ObjectId a string
+        for s in solicitudes_usuarios:
+            s['_id'] = str(s['_id'])
+
+        return jsonify(solicitudes_usuarios), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 @usuarios.route('/seguir', methods=['POST'])
 def seguir_usuario():
@@ -199,6 +237,16 @@ def seguir_usuario():
                 {'_id': ObjectId(usuario_a_seguir_id)},
                 {'$addToSet': {'seguidores': ObjectId(usuario_id)}}
             )
+            mongo.db.notificaciones.insert_one({
+                "id_usuario_r": ObjectId(usuario_a_seguir_id),
+                "tipo": "seguimiento",
+                "id_usuario_e": ObjectId(usuario_id),
+                "id_camino": None,
+                "id_etapa": None,
+                "fecha": datetime.now().isoformat(),
+                "leido": False,
+                "mensaje": f"{usuario_a_seguir['nombre']} {usuario_a_seguir['apellidos']} ha empezado a seguirte"
+            })
             return jsonify({'mensaje': 'Usuario seguido exitosamente'}), 200
         else:
             # Perfil privado: crear solicitud pendiente
@@ -206,7 +254,83 @@ def seguir_usuario():
                 {'_id': ObjectId(usuario_a_seguir_id)},
                 {'$addToSet': {'solicitudesSeguimiento': ObjectId(usuario_id)}}
             )
+            mongo.db.notificaciones.insert_one({
+                "id_usuario_r": ObjectId(usuario_a_seguir_id),
+                "tipo": "solicitud",
+                "id_usuario_e": ObjectId(usuario_id),
+                "id_camino": None,
+                "id_etapa": None,
+                "fecha": datetime.now().isoformat(),
+                "leido": False,
+                "mensaje": f"{usuario_a_seguir['nombre']} {usuario_a_seguir['apellidos']} ha solicitado seguirte"
+            })
             return jsonify({'mensaje': 'Solicitud de seguimiento enviada'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+@usuarios.route('/dejar_seguir', methods=['POST'])
+def dejar_seguir():
+    data = request.get_json()
+    usuario_id = data.get('usuario_id')
+    usuario_a_dejar_id = data.get('usuario_a_dejar_id')
+
+    if not usuario_id or not usuario_a_dejar_id:
+        return jsonify({'error': 'Faltan el ID del usuario o el usuario a dejar de seguir'}), 400
+
+    if usuario_id == usuario_a_dejar_id:
+        return jsonify({'error': 'No puedes dejar de seguirte a ti mismo'}), 400
+
+    try:
+        usuario_a_dejar = mongo.db.usuarios.find_one({'_id': ObjectId(usuario_a_dejar_id)}, {'seguidores': 1})
+        usuario = mongo.db.usuarios.find_one({'_id': ObjectId(usuario_id)}, {'siguiendo': 1})
+
+        if not usuario_a_dejar:
+            return jsonify({'error': 'Usuario a dejar de seguir no encontrado'}), 404
+        if not usuario:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+
+        # Eliminar usuario_id de los seguidores del usuario_a_dejar
+        mongo.db.usuarios.update_one(
+            {'_id': ObjectId(usuario_a_dejar_id)},
+            {'$pull': {'seguidores': ObjectId(usuario_id)}}
+        )
+
+        # Eliminar usuario_a_dejar_id de la lista de seguidos del usuario
+        mongo.db.usuarios.update_one(
+            {'_id': ObjectId(usuario_id)},
+            {'$pull': {'siguiendo': ObjectId(usuario_a_dejar_id)}}
+        )
+
+        return jsonify({'mensaje': 'Has dejado de seguir al usuario correctamente'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@usuarios.route('/cancelar_solicitud', methods=['POST'])
+def cancelar_solicitud():
+    data = request.get_json()
+    usuario_id = data.get('usuario_id')  # El que envió la solicitud
+    destinatario_id = data.get('destinatario_id')  # El que iba a recibir la solicitud
+
+    if not usuario_id or not destinatario_id:
+        return jsonify({'error': 'Faltan el ID del usuario o el destinatario'}), 400
+
+    if usuario_id == destinatario_id:
+        return jsonify({'error': 'No puedes cancelarte una solicitud a ti mismo'}), 400
+
+    try:
+        destinatario = mongo.db.usuarios.find_one({'_id': ObjectId(destinatario_id)}, {'solicitudesSeguimiento': 1})
+
+        if not destinatario:
+            return jsonify({'error': 'Usuario destinatario no encontrado'}), 404
+
+        # Eliminar la solicitud del destinatario
+        mongo.db.usuarios.update_one(
+            {'_id': ObjectId(destinatario_id)},
+            {'$pull': {'solicitudesSeguimineto': ObjectId(usuario_id)}}
+        )
+        return jsonify({'mensaje': 'Solicitud cancelada correctamente'}), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -243,6 +367,16 @@ def gestionar_solicitud():
                 {'_id': ObjectId(solicitante_id)},
                 {'$addToSet': {'siguiendo': ObjectId(usuario_privado_id)}}
             )
+            mongo.db.notificaciones.insert_one({
+                "id_usuario_r": ObjectId(solicitante_id),
+                "tipo": "aceptacion",
+                "id_usuario_e": ObjectId(usuario_privado_id),
+                "id_camino": None,
+                "id_etapa": None,
+                "fecha": datetime.now().isoformat(),
+                "leido": False,
+                "mensaje": f"{usuario_privado['nombre']} {usuario_privado['apellidos']} ha aceptado tu solicitud de seguimiento"
+            })
             return jsonify({'mensaje': 'Solicitud aceptada, ahora eres seguidor'}), 200
 
         else:  # rechazar
@@ -293,3 +427,76 @@ def get_usuarios():
         usuario['solicitudesSeguimiento'] = [str(s) for s in usuario.get('solicitudesSeguimiento', [])]
 
     return jsonify(usuarios), 200
+
+
+@usuarios.route('/marcar_notificaciones_leidas', methods=['POST'])
+def marcar_leidas():
+    usuario_id = request.json.get('usuario_id')
+    if not usuario_id:
+        return jsonify({"error": "ID de usuario no proporcionado"}), 400
+
+    try:
+        resultado = mongo.db.notificaciones.delete_many(
+            {"id_usuario_r": ObjectId(usuario_id), "leido": False}
+        )
+        return jsonify({"mensaje": f"{resultado.deleted_count} notificaciones eliminadas"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@usuarios.route('/get_notificaciones', methods=['GET'])
+def get_notificaciones():
+    usuario_id = request.args.get('usuario_id')
+    print(f"Obteniendo notificaciones para el usuario: {usuario_id}")
+
+    if not usuario_id:
+        return jsonify({"error": "ID de usuario no proporcionado"}), 400
+
+    try:
+        notificaciones = list(mongo.db.notificaciones.find(
+            {"id_usuario_r": ObjectId(usuario_id), "leido": False},
+        ).sort("fecha", -1))
+
+        for n in notificaciones:
+            n['_id'] = str(n['_id'])
+            n['id_usuario_r'] = str(n.get('id_usuario_r', ''))
+            n['id_usuario_e'] = str(n.get('id_usuario_e', ''))
+            n['id_camino'] = str(n.get('id_camino', ''))
+            # Solo convertir si es datetime
+            if isinstance(n.get('fecha'), datetime):
+                n['fecha'] = n['fecha'].isoformat()
+        return jsonify(notificaciones), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+@usuarios.route('/relacion', methods=['GET'])
+def relacion():
+    usuario_id_e = request.args.get('usuario_id_e')
+    usuario_id_r = request.args.get('usuario_id_r')
+
+    if not usuario_id_e or not usuario_id_r:
+        return jsonify({"error": "Faltan IDs de usuario"}), 400
+    
+    try:
+        SegSol = mongo.db.usuarios.find_one(
+            {"_id": ObjectId(usuario_id_r)},
+            {"seguidores": 1, "solicitudesSeguimiento": 1}
+        )
+
+        if not SegSol:
+            return jsonify({"error": "Usuario receptor no encontrado"}), 404
+        
+        seguidores = SegSol.get('seguidores', [])
+        solicitudes = SegSol.get('solicitudesSeguimiento', [])
+
+        if ObjectId(usuario_id_e) in seguidores:
+            return jsonify({"relacion": "siguiendo"}), 200
+        elif ObjectId(usuario_id_e) in solicitudes:
+            return jsonify({"relacion": "pendiente"}), 200
+        else:
+            return jsonify({"relacion": "ninguna"}), 200
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
