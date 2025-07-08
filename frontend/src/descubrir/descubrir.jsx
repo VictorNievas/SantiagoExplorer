@@ -258,7 +258,7 @@ const PerfilModal = ({ usuario, onClose }) => {
                     <strong>{usuario.seguidores?.length || 0}</strong> seguidores
                   </span>
                   <span className="text-sm text-gray-600">
-                    <strong>{usuario.seguidos?.length || 0}</strong> seguidos
+                    <strong>{usuario.siguiendo?.length || 0}</strong> seguidos
                   </span>
                 </div>
               </div>
@@ -955,6 +955,13 @@ function DescubrirSocial() {
   const [mostrarFiltros, setMostrarFiltros] = useState(false)
   const [caminos, setCaminos] = useState([])
 
+   // Estados para búsqueda de usuarios
+  const [busquedaUsuarios, setBusquedaUsuarios] = useState("")
+  const [usuariosEncontrados, setUsuariosEncontrados] = useState([])
+  const [mostrarDropdownUsuarios, setMostrarDropdownUsuarios] = useState(false)
+  const [loadingUsuarios, setLoadingUsuarios] = useState(false)
+  const [todosLosUsuarios, setTodosLosUsuarios] = useState([])
+
   useEffect(() => {
     const cargarDatos = async () => {
       try {
@@ -971,12 +978,24 @@ function DescubrirSocial() {
 
         const etapasFormateadas = []
         const caminosSet = new Set()
-
+        const usuarioActualId = localStorage.getItem("usuario")
         // Para cada usuario, obtenemos sus datos completos y etapas
         for (const usuario of usuarios) {
           try {
+            let mostrar = false
+            const seguidores = usuario.seguidores?.map((id) => id?.$oid || id) || []
+
+            if(usuarioActualId == usuario._id){
+              mostrar = true
+            }
+            else if(seguidores.includes(usuarioActualId)){
+              mostrar = true
+            }
+            else if(usuario.publico == true){
+              mostrar = true
+            }
             // Si el usuario tiene caminos con etapas completadas
-            if (usuario.caminos && Array.isArray(usuario.caminos)) {
+            if (usuario.caminos && Array.isArray(usuario.caminos) && mostrar) {
               for (const camino of usuario.caminos) {
                 try {
                   // Obtener datos del camino usando el ObjectId
@@ -1067,6 +1086,22 @@ function DescubrirSocial() {
     cargarDatos()
   }, [])
 
+  // Cargar todos los usuarios para la búsqueda
+  useEffect(() => {
+    const cargarTodosUsuarios = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/usuarios/get_usuarios")
+        if (response.ok) {
+          const usuarios = await response.json()
+          setTodosLosUsuarios(usuarios)
+        }
+      } catch (error) {
+        console.error("Error cargando usuarios:", error)
+      }
+    }
+    cargarTodosUsuarios()
+  }, [])
+
   const handleUsuarioClick = async (usuarioId) => {
     try {
       // Cargar datos completos del usuario
@@ -1141,6 +1176,45 @@ function DescubrirSocial() {
     }
   }
 
+   // Función para buscar usuarios
+  const buscarUsuarios = (termino) => {
+    setBusquedaUsuarios(termino)
+
+    if (termino.trim().length < 2) {
+      setUsuariosEncontrados([])
+      setMostrarDropdownUsuarios(false)
+      return
+    }
+
+    setLoadingUsuarios(true)
+
+    // Filtrar usuarios localmente
+    const usuariosFiltrados = todosLosUsuarios
+      .filter((usuario) => {
+        const nombreCompleto = `${usuario.nombre} ${usuario.apellidos}`.toLowerCase()
+        const email = (usuario.gmail || "").toLowerCase()
+        const terminoBusqueda = termino.toLowerCase()
+
+        return nombreCompleto.includes(terminoBusqueda) || email.includes(terminoBusqueda)
+      })
+      .slice(0, 8) // Limitar a 8 resultados
+
+    setUsuariosEncontrados(usuariosFiltrados)
+    setMostrarDropdownUsuarios(true)
+    setLoadingUsuarios(false)
+  }
+
+  // Función para seleccionar un usuario del dropdown
+  const seleccionarUsuario = async (usuario) => {
+    setBusquedaUsuarios("")
+    setMostrarDropdownUsuarios(false)
+    setUsuariosEncontrados([])
+
+    // Usar la función existente handleUsuarioClick
+    const usuarioId = usuario._id.$oid || usuario._id
+    await handleUsuarioClick(usuarioId)
+  }
+
   // Filtrar etapas
   const etapasFiltradas = etapas.filter((etapa) => {
     const coincideBusqueda =
@@ -1164,6 +1238,23 @@ function DescubrirSocial() {
 
     return coincideBusqueda && coincideCamino && coincideTiempo
   })
+
+    // Cerrar dropdown al hacer clic fuera
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (mostrarDropdownUsuarios && !event.target.closest(".relative")) {
+        setMostrarDropdownUsuarios(false)
+        setIsDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [mostrarDropdownUsuarios])
 
   if (loading) {
     return (
@@ -1211,7 +1302,7 @@ function DescubrirSocial() {
         {/* Filtros y Búsqueda */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="flex flex-col lg:flex-row gap-4">
-            {/* Búsqueda */}
+            {/* Búsqueda de etapas */}
             <div className="flex-1">
               <div className="relative">
                 <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -1224,7 +1315,80 @@ function DescubrirSocial() {
                 />
               </div>
             </div>
+            {/* Búsqueda de Usuarios */}
+            <div className="flex-1 relative">
+              <div className="relative">
+                <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Buscar usuarios..."
+                  value={busquedaUsuarios}
+                  onChange={(e) => buscarUsuarios(e.target.value)}
+                  onFocus={() => {
+                    if (busquedaUsuarios.trim().length >= 2) {
+                      setMostrarDropdownUsuarios(true)
+                    }
+                  }}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
 
+              {/* Dropdown de Usuarios */}
+              {mostrarDropdownUsuarios && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+                  {loadingUsuarios ? (
+                    <div className="p-4 text-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                      <p className="text-sm text-gray-500 mt-2">Buscando usuarios...</p>
+                    </div>
+                  ) : usuariosEncontrados.length > 0 ? (
+                    <div className="py-2">
+                      {usuariosEncontrados.map((usuario) => (
+                        <button
+                          key={usuario._id.$oid || usuario._id}
+                          onClick={() => seleccionarUsuario(usuario)}
+                          className="w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left flex items-center space-x-3"
+                        >
+                          <img
+                            src={usuario.foto || "/placeholder.svg?height=32&width=32"}
+                            alt={`${usuario.nombre} ${usuario.apellidos}`}
+                            className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                            onError={(e) => {
+                              e.target.src = "/placeholder.svg?height=32&width=32"
+                            }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 truncate">
+                              {usuario.nombre} {usuario.apellidos}
+                            </p>
+                            <p className="text-sm text-gray-500 truncate">{usuario.gmail}</p>
+                            <div className="flex items-center space-x-2 mt-1">
+                              <span className="text-xs text-blue-600 font-medium">
+                                Nivel {usuario.nivel?.$numberInt || usuario.nivel || 1}
+                              </span>
+                              <span className="text-xs text-gray-400">•</span>
+                              <span className="text-xs text-gray-500">
+                                {usuario.caminos?.reduce(
+                                  (total, c) => total + (c.etapas_completadas?.length || 0),
+                                  0,
+                                ) || 0}{" "}
+                                etapas
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : busquedaUsuarios.trim().length >= 2 ? (
+                    <div className="p-4 text-center">
+                      <UserIcon className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">No se encontraron usuarios</p>
+                      <p className="text-xs text-gray-400">Intenta con otros términos</p>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </div>
             {/* Botón de Filtros */}
             <button
               onClick={() => setMostrarFiltros(!mostrarFiltros)}

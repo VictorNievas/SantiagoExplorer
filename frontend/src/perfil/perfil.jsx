@@ -15,6 +15,241 @@ const UserIcon = ({ className = "w-5 h-5" }) => (
   </svg>
 )
 
+const PerfilModal = ({ usuario, onClose }) => {
+  const [estadoRelacion, setEstadoRelacion] = useState("ninguna");
+  // Puede ser: "ninguna", "pendiente", "siguiendo"
+  const [usuarioActualData, setUsuarioActualData] = useState(null)
+  const usuarioActual = localStorage.getItem("usuario")
+  useEffect(() => {
+    const cargarUsuarioActual = async () => {
+      if (usuarioActual) {
+        try {
+          const response = await fetch(`http://localhost:5000/api/usuarios/get_usuario?usuario_id=${usuarioActual}`)
+          if (response.ok) {
+            const userData = await response.json()
+            setUsuarioActualData(userData)
+          }
+          // Verificar estado de relación
+          const responseRelacion = await fetch(`http://localhost:5000/api/usuarios/relacion?usuario_id_e=${usuarioActual}&usuario_id_r=${usuario._id}`)
+          if (responseRelacion.ok) {
+            const relacionData = await responseRelacion.json()
+            console.log("Estado de relación:", relacionData)
+            if (relacionData) {
+              setEstadoRelacion(relacionData.relacion);
+            } else {
+              setEstadoRelacion("ninguna");
+            }
+          }
+        } catch (error) {
+          console.error("Error cargando usuario actual:", error)
+        }
+      }
+    }
+    cargarUsuarioActual()
+  }, [usuarioActual])
+
+  const handleEnviarSolicitud = async () => {
+    const response = await fetch("http://localhost:5000/api/usuarios/seguir", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        usuario_id: usuarioActual,
+        usuario_a_seguir_id: usuario._id,
+      }),
+    })
+    if (response.ok) {
+      if(usuario.publico === false) {
+      setEstadoRelacion("pendiente");
+      }
+      else{
+        setEstadoRelacion("siguiendo");
+      }
+    } else {
+      const errorData = await response.json();
+      console.error("Error al enviar solicitud:", errorData.error);
+      alert(errorData.error || "Error al enviar solicitud");
+    }
+  };
+
+  const handleCancelarSolicitud = async () => {
+    const response = await fetch("http://localhost:5000/api/usuarios/cancelar_solicitud", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        usuario_id: usuarioActual,
+        destinatario_id: usuario._id,
+      }),
+    })
+    if (response.ok) {
+      setEstadoRelacion("ninguna");
+    } else {
+      const errorData = await response.json();
+      console.error("Error al cancelar solicitud:", errorData.error);
+      alert(errorData.error || "Error al cancelar solicitud");
+    }
+  };
+
+  const handleDejarDeSeguir = async () => {
+    const response = await fetch("http://localhost:5000/api/usuarios/dejar_seguir", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        usuario_id: usuarioActual,
+        usuario_a_dejar_id: usuario._id,
+      }),
+    })
+    if (response.ok) {
+      setEstadoRelacion("ninguna");
+    } else {
+      const errorData = await response.json();
+      console.error("Error al cancelar solicitud:", errorData.error);
+      alert(errorData.error || "Error al cancelar solicitud");
+    }
+  };
+  if (!usuario) return null
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header del Modal */}
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <img
+                src={usuario.foto || "/placeholder.svg?height=80&width=80"}
+                alt={`${usuario.nombre} ${usuario.apellidos}`}
+                className="w-16 h-16 rounded-full object-cover border-2 border-blue-200"
+                onError={(e) => {
+                  e.target.src = "/placeholder.svg?height=80&width=80"
+                }}
+              />
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {usuario.nombre} {usuario.apellidos}
+                </h2>
+                <p className="text-gray-600">{usuario.gmail}</p>
+                <div className="flex items-center space-x-4 mt-2">
+                  <span className="text-sm text-blue-600 font-medium">Nivel {usuario.nivel || 1}</span>
+                  <span className="text-sm text-gray-500">{usuario.etapas_completadas || 0} etapas completadas</span>
+                </div>
+                <div className="flex items-center space-x-4 mt-1">
+                  <span className="text-sm text-gray-600">
+                    <strong>{usuario.seguidores?.length || 0}</strong> seguidores
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    <strong>{usuario.siguiendo?.length || 0}</strong> seguidos
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              {/* Botón dinámico de seguir */}
+              {estadoRelacion === "siguiendo" && (
+                <button
+                  onClick={handleDejarDeSeguir}
+                  className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
+                >
+                  Siguiendo
+                </button>
+              )}
+
+              {estadoRelacion === "pendiente" && (
+                <button
+                  onClick={handleCancelarSolicitud}
+                  className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-colors"
+                >
+                  Solicitud enviada
+                </button>
+              )}
+
+              {estadoRelacion === "ninguna" && (
+                <button
+                  onClick={handleEnviarSolicitud}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Seguir
+                </button>
+              )}
+
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <CloseIcon className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+
+        {/* Estadísticas del Usuario */}
+        <div className="p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600">{usuario.etapas_completadas || 0}</div>
+              <div className="text-sm text-gray-600">Etapas</div>
+            </div>
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <div className="text-2xl font-bold text-green-600">{Math.round(usuario.distancia_recorrida || 0)} km</div>
+              <div className="text-sm text-gray-600">Recorridos</div>
+            </div>
+            <div className="text-center p-4 bg-purple-50 rounded-lg">
+              <div className="text-2xl font-bold text-purple-600">{usuario.caminos_iniciados || 0}</div>
+              <div className="text-sm text-gray-600">Caminos</div>
+            </div>
+            <div className="text-center p-4 bg-yellow-50 rounded-lg">
+              <div className="text-2xl font-bold text-yellow-600">{usuario.fotos_subidas || 0}</div>
+              <div className="text-sm text-gray-600">Fotos</div>
+            </div>
+          </div>
+
+          {/* Últimas Etapas del Usuario */}
+          {usuario.ultimas_etapas && usuario.ultimas_etapas.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Últimas Etapas Completadas</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {usuario.ultimas_etapas.slice(0, 4).map((etapa, index) => (
+                  <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start space-x-3">
+                      {etapa.foto ? (
+                        <img
+                          src={etapa.foto || "/placeholder.svg"}
+                          alt={etapa.nombre}
+                          className="w-12 h-12 object-cover rounded-lg"
+                          onError={(e) => {
+                            e.target.src = "/placeholder.svg?height=48&width=48"
+                          }}
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                          <RouteIcon className="w-6 h-6 text-gray-400" />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900 text-sm">{etapa.nombre}</h4>
+                        <p className="text-xs text-gray-600">{etapa.caminoNombre}</p>
+                        <p className="text-xs text-gray-500">{new Date(etapa.fecha).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const TrophyIcon = ({ className = "w-5 h-5" }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path
@@ -232,7 +467,13 @@ function PerfilUsuario() {
   const [busquedaLogros, setBusquedaLogros] = useState("")
   const [etapaSeleccionada, setEtapaSeleccionada] = useState(null);
   const [mostrarModalEtapa, setMostrarModalEtapa] = useState(false);
-
+  const [mostrarSeguidores, setMostrarSeguidores] = useState(false)
+  const [mostrarSeguidos, setMostrarSeguidos] = useState(false)
+  const [seguidoresList, setSeguidoresList] = useState([])
+  const [seguidosList, setSeguidosList] = useState([])
+  const [loadingSeguidores, setLoadingSeguidores] = useState(false)
+  const [loadingSeguidos, setLoadingSeguidos] = useState(false)
+  const [usuarioSeleccionadoModal, setUsuarioSeleccionadoModal] = useState(null)
 
   // Función para generar TODOS los logros disponibles
   const generarTodosLosLogros = (userData) => {
@@ -571,8 +812,171 @@ function PerfilUsuario() {
       }
     }
 
+
     cargarDatosUsuario()
   }, [])
+
+  const cargarSeguidores = async () => {
+      if (!userData?.seguidores || userData.seguidores.length === 0) {
+        setSeguidoresList([])
+        return
+      }
+
+      setLoadingSeguidores(true)
+      try {
+        const seguidoresData = []
+        for (const seguidorId of userData.seguidores) {
+          const id = seguidorId.$oid || seguidorId
+          const response = await fetch(`http://localhost:5000/api/usuarios/get_usuario?usuario_id=${id}`)
+          if (response.ok) {
+            const seguidorData = await response.json()
+            // Calcular estadísticas
+            const etapasCompletadas =
+              seguidorData.caminos?.reduce((total, camino) => total + (camino.etapas_completadas?.length || 0), 0) || 0
+            const fotosSubidas =
+              seguidorData.caminos?.reduce(
+                (total, camino) =>
+                  total + (camino.etapas_completadas?.filter((etapa) => etapa.imagen || etapa.url_foto).length || 0),
+                0,
+              ) || 0
+
+            seguidoresData.push({
+              ...seguidorData,
+              etapas_completadas: etapasCompletadas,
+              fotos_subidas: fotosSubidas,
+              caminos_iniciados: seguidorData.caminos?.length || 0,
+              distancia_recorrida:
+                seguidorData.distancia_recorrida?.$numberDouble || seguidorData.distancia_recorrida || 0,
+              nivel: seguidorData.nivel?.$numberInt || seguidorData.nivel || 1,
+            })
+          }
+        }
+        setSeguidoresList(seguidoresData)
+      } catch (error) {
+        console.error("Error cargando seguidores:", error)
+      } finally {
+        setLoadingSeguidores(false)
+      }
+    }
+
+    // Función para cargar lista de seguidos
+    const cargarSeguidos = async () => {
+      if (!userData?.siguiendo || userData.siguiendo.length === 0) {
+        setSeguidosList([])
+        return
+      }
+
+      setLoadingSeguidos(true)
+      try {
+        const seguidosData = []
+        for (const seguidoId of userData.siguiendo) {
+          const id = seguidoId.$oid || seguidoId
+          const response = await fetch(`http://localhost:5000/api/usuarios/get_usuario?usuario_id=${id}`)
+          if (response.ok) {
+            const seguidoData = await response.json()
+            // Calcular estadísticas
+            const etapasCompletadas =
+              seguidoData.caminos?.reduce((total, camino) => total + (camino.etapas_completadas?.length || 0), 0) || 0
+            const fotosSubidas =
+              seguidoData.caminos?.reduce(
+                (total, camino) =>
+                  total + (camino.etapas_completadas?.filter((etapa) => etapa.imagen || etapa.url_foto).length || 0),
+                0,
+              ) || 0
+
+            seguidosData.push({
+              ...seguidoData,
+              etapas_completadas: etapasCompletadas,
+              fotos_subidas: fotosSubidas,
+              caminos_iniciados: seguidoData.caminos?.length || 0,
+              distancia_recorrida:
+                seguidoData.distancia_recorrida?.$numberDouble || seguidoData.distancia_recorrida || 0,
+              nivel: seguidoData.nivel?.$numberInt || seguidoData.nivel || 1,
+            })
+          }
+        }
+        setSeguidosList(seguidosData)
+      } catch (error) {
+        console.error("Error cargando seguidos:", error)
+      } finally {
+        setLoadingSeguidos(false)
+      }
+    }
+
+   // Función para manejar click en seguidores
+    const handleSeguidoresClick = () => {
+      setMostrarSeguidores(true)
+      cargarSeguidores()
+    }
+
+    // Función para manejar click en seguidos
+    const handleSeguidosClick = () => {
+      setMostrarSeguidos(true)
+      cargarSeguidos()
+    }
+
+    // Función para manejar click en usuario de la lista
+    const handleUsuarioModalClick = async (usuario) => {
+      try {
+        // Cargar datos completos del usuario si es necesario
+        const usuarioId = usuario._id?.$oid || usuario._id
+        const response = await fetch(`http://localhost:5000/api/usuarios/get_usuario?usuario_id=${usuarioId}`)
+        if (response.ok) {
+          const usuarioCompleto = await response.json()
+
+          // Obtener últimas etapas
+          const ultimasEtapas = []
+          if (usuarioCompleto.caminos && Array.isArray(usuarioCompleto.caminos)) {
+            for (const camino of usuarioCompleto.caminos) {
+              try {
+                const caminoId = camino.id_camino.$oid || camino.id_camino
+                const caminoResponse = await fetch(`http://localhost:5000/api/caminos/get_camino?camino_id=${caminoId}`)
+                if (caminoResponse.ok) {
+                  const caminoData = await caminoResponse.json()
+                  if (camino.etapas_completadas && Array.isArray(camino.etapas_completadas)) {
+                    camino.etapas_completadas.forEach((etapa) => {
+                      const etapaId = etapa.id_etapa.$numberInt || etapa.id_etapa
+                      const etapaInfo = caminoData.etapas?.find((e) => {
+                        const eId = e._id.$numberInt || e._id
+                        return eId === etapaId
+                      })
+                      if (etapaInfo) {
+                        ultimasEtapas.push({
+                          nombre: etapaInfo.nombre || "Etapa desconocida",
+                          caminoNombre: caminoData.nombre || "Camino desconocido",
+                          foto: etapa.imagen || etapa.url_foto || null,
+                          fecha: etapa.fecha,
+                        })
+                      }
+                    })
+                  }
+                }
+              } catch (error) {
+                console.warn(`Error cargando camino ${camino.id_camino}:`, error)
+              }
+            }
+          }
+
+          // Ordenar por fecha y tomar las últimas 4
+          ultimasEtapas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
+
+          const usuarioConDatos = {
+            ...usuarioCompleto,
+            etapas_completadas: usuario.etapas_completadas,
+            fotos_subidas: usuario.fotos_subidas,
+            caminos_iniciados: usuario.caminos_iniciados,
+            distancia_recorrida: usuario.distancia_recorrida,
+            nivel: usuario.nivel,
+            ultimas_etapas: ultimasEtapas.slice(0, 4),
+          }
+
+          setUsuarioSeleccionadoModal(usuarioConDatos)
+        }
+      } catch (error) {
+        console.error("Error al cargar perfil del usuario:", error)
+        alert("Error al cargar el perfil del usuario")
+      }
+    }
 
   if (loading) {
     return (
@@ -660,7 +1064,7 @@ function PerfilUsuario() {
                 <p className="text-gray-600 mb-4">{userData?.gmail}</p>
 
                 {/* Estadísticas Rápidas */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-600">{totalEtapas}</div>
                     <div className="text-sm text-gray-600">Etapas</div>
@@ -676,6 +1080,24 @@ function PerfilUsuario() {
                   <div className="text-center">
                     <div className="text-2xl font-bold text-yellow-600">{totalFotos}</div>
                     <div className="text-sm text-gray-600">Fotos</div>
+                  </div>
+                  <div className="text-center">
+                    <button
+                      onClick={handleSeguidoresClick}
+                      className="text-center hover:bg-gray-50 rounded-lg p-2 transition-colors cursor-pointer"
+                    >
+                      <div className="text-2xl font-bold text-indigo-600">{userData?.seguidores?.length || 0}</div>
+                      <div className="text-sm text-gray-600">Seguidores</div>
+                    </button>
+                  </div>
+                  <div className="text-center">
+                    <button
+                      onClick={handleSeguidosClick}
+                      className="text-center hover:bg-gray-50 rounded-lg p-2 transition-colors cursor-pointer"
+                    >
+                      <div className="text-2xl font-bold text-pink-600">{userData?.siguiendo?.length || 0}</div>
+                      <div className="text-sm text-gray-600">Seguidos</div>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -952,6 +1374,148 @@ function PerfilUsuario() {
           </div>
         </div>
       )}
+      {/* Modal de Seguidores */}
+      {mostrarSeguidores && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-900">Seguidores ({userData?.seguidores?.length || 0})</h2>
+                <button
+                  onClick={() => setMostrarSeguidores(false)}
+                  className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <CloseIcon className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {loadingSeguidores ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                  <p className="text-center text-gray-600 mt-4 ml-4">Cargando seguidores...</p>
+                </div>
+              ) : seguidoresList.length > 0 ? (
+                <div className="space-y-4">
+                  {seguidoresList.map((seguidor) => (
+                    <div
+                      key={seguidor._id?.$oid || seguidor._id}
+                      className="flex items-center space-x-4 p-4 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+                      onClick={() => handleUsuarioModalClick(seguidor)}
+                    >
+                      <img
+                        src={seguidor.foto || "/placeholder.svg?height=48&width=48"}
+                        alt={`${seguidor.nombre} ${seguidor.apellidos}`}
+                        className="w-12 h-12 rounded-full object-cover border border-gray-200"
+                        onError={(e) => {
+                          e.target.src = "/placeholder.svg?height=48&width=48"
+                        }}
+                      />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900">
+                          {seguidor.nombre} {seguidor.apellidos}
+                        </h3>
+                        <p className="text-sm text-gray-600">{seguidor.gmail}</p>
+                        <div className="flex items-center space-x-4 mt-1">
+                          <span className="text-xs text-blue-600 font-medium">Nivel {seguidor.nivel}</span>
+                          <span className="text-xs text-gray-500">{seguidor.etapas_completadas} etapas</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-gray-900">
+                          {Math.round(seguidor.distancia_recorrida)} km
+                        </div>
+                        <div className="text-xs text-gray-500">{seguidor.caminos_iniciados} caminos</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <UserIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Sin seguidores</h3>
+                  <p className="text-gray-600">Aún no tienes seguidores</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Seguidos */}
+      {mostrarSeguidos && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-900">Seguidos ({userData?.siguiendo?.length || 0})</h2>
+                <button
+                  onClick={() => setMostrarSeguidos(false)}
+                  className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <CloseIcon className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {loadingSeguidos ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                  <p className="text-center text-gray-600 mt-4 ml-4">Cargando seguidos...</p>
+                </div>
+              ) : seguidosList.length > 0 ? (
+                <div className="space-y-4">
+                  {seguidosList.map((seguido) => (
+                    <div
+                      key={seguido._id?.$oid || seguido._id}
+                      className="flex items-center space-x-4 p-4 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+                      onClick={() => handleUsuarioModalClick(seguido)}
+                    >
+                      <img
+                        src={seguido.foto || "/placeholder.svg?height=48&width=48"}
+                        alt={`${seguido.nombre} ${seguido.apellidos}`}
+                        className="w-12 h-12 rounded-full object-cover border border-gray-200"
+                        onError={(e) => {
+                          e.target.src = "/placeholder.svg?height=48&width=48"
+                        }}
+                      />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900">
+                          {seguido.nombre} {seguido.apellidos}
+                        </h3>
+                        <p className="text-sm text-gray-600">{seguido.gmail}</p>
+                        <div className="flex items-center space-x-4 mt-1">
+                          <span className="text-xs text-blue-600 font-medium">Nivel {seguido.nivel}</span>
+                          <span className="text-xs text-gray-500">{seguido.etapas_completadas} etapas</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-gray-900">
+                          {Math.round(seguido.distancia_recorrida)} km
+                        </div>
+                        <div className="text-xs text-gray-500">{seguido.caminos_iniciados} caminos</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <UserIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Sin seguidos</h3>
+                  <p className="text-gray-600">Aún no sigues a nadie</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Perfil Modal */}
+      {usuarioSeleccionadoModal && (
+        <PerfilModal usuario={usuarioSeleccionadoModal} onClose={() => setUsuarioSeleccionadoModal(null)} />
+      )}
+
       {/* Modal de Etapa Detallada */}
       {mostrarModalEtapa && etapaSeleccionada && (
       <div className="fixed inset-0 z-50 bg-black bg-opacity-60 flex items-center justify-center p-4">
