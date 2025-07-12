@@ -175,7 +175,8 @@ const PerfilModal = ({ usuario, onClose }) => {
       }),
     })
     if (response.ok) {
-      if(usuario.publico === false) {
+      console.log("Usuario publico:", usuario.publico)
+      if(usuario.publico === false || usuario.publico === "false") {
       setEstadoRelacion("pendiente");
       }
       else{

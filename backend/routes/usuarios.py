@@ -26,7 +26,8 @@ def crear_usuario():
     foto = request.files.get('foto')
     password = request.form.get('password')
     gmail = request.form.get('email')
-    publico = request.form.get('publico')
+    publico_raw = request.form.get('publico')
+    publico = publico_raw.lower() == 'true' if publico_raw else False
 
     print(f"Datos recibidos: {nombre}, {apellidos}, {gmail}, {foto}, {password}")
     if not all([nombre, apellidos, foto, password, gmail]):
@@ -500,3 +501,77 @@ def relacion():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+@usuarios.route('/actualizar_perfil', methods=['PUT'])
+def actualizar_perfil():
+    data = request.form
+    usuario_id = data.get('usuario_id')
+    nombre = data.get('nombre')
+    apellidos = data.get('apellidos')
+    foto = request.files.get('foto')
+    publico_raw = data.get('publico')
+    publico = publico_raw.lower() == 'true' if publico_raw else False
+    if not usuario_id or not nombre or not apellidos:
+        return jsonify({'error': 'Faltan campos obligatorios'}), 400
+    try:
+        mongo.db.usuarios.update_one(
+            {"_id": ObjectId(usuario_id)},
+            {"$set": {
+                "nombre": nombre,
+                "apellidos": apellidos,
+                "publico": publico
+            }}
+        )
+        if foto:
+            # Subir nueva foto a Cloudinary
+            upload_result = cloudinary.uploader.upload(foto)
+            imagen_url = upload_result['secure_url']
+            mongo.db.usuarios.update_one(
+                {"_id": ObjectId(usuario_id)},
+                {"$set": {"foto": imagen_url}}
+            )
+        return jsonify({'mensaje': 'Perfil actualizado exitosamente'}), 200
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+import bcrypt
+
+@usuarios.route('/cambiar_password', methods=['PUT'])
+def cambiar_password():
+    data = request.get_json()
+
+    usuario_id = data.get('usuario_id')
+    password_actual = data.get('password_actual')
+    password_nueva = data.get('password_nueva')
+
+    if not usuario_id or not password_actual or not password_nueva:
+        return jsonify({'error': 'Faltan campos obligatorios'}), 400
+
+    try:
+        usuario = mongo.db.usuarios.find_one({"_id": ObjectId(usuario_id)})
+        if not usuario:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+
+        hashed_password = usuario.get("contrasena")
+        if not hashed_password:
+            return jsonify({'error': 'No hay contraseña almacenada para este usuario'}), 400
+
+        # bcrypt espera bytes, aseguramos la conversión
+        if not bcrypt.checkpw(password_actual.encode('utf-8'), hashed_password.encode('utf-8')):
+            return jsonify({'error': 'La contraseña actual es incorrecta'}), 401
+
+        # Hashear la nueva contraseña
+        nueva_password_hash = bcrypt.hashpw(password_nueva.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+        # Actualizar en BD
+        mongo.db.usuarios.update_one(
+            {"_id": ObjectId(usuario_id)},
+            {"$set": {"contrasena": nueva_password_hash}}
+        )
+
+        return jsonify({'mensaje': 'Contraseña actualizada correctamente'}), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500

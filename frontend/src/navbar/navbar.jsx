@@ -588,97 +588,178 @@ export default function Navbar() {
       </div>
 
       {/* Mobile Menu */}
-      {isOpen && (
-        <div className="md:hidden">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t border-gray-200">
-            {navigationItems.map((item) => {
-              const Icon = item.icon
-              return (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium hover:bg-blue-50 transition-colors duration-200"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{item.name}</span>
-                </a>
-              )
-            })}
+      {/* Mobile Dropdown */}
+{isOpen && (
+  <div className="md:hidden mt-2 space-y-2 bg-white border rounded-md p-4 shadow-lg">
+    {/* Navegación principal */}
+    <div className="space-y-2">
+      {navigationItems.map((item) => {
+        const Icon = item.icon
+        return (
+          <a
+            key={item.name}
+            href={item.href}
+            className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 hover:bg-blue-50"
+          >
+            <Icon className="w-4 h-4" />
+            <span>{item.name}</span>
+          </a>
+        )
+      })}
+    </div>
 
-            {/* Mobile Notifications */}
-            <div className="border-t border-gray-200 pt-4 mt-4">
-              <button
-                onClick={() => {
-                  setIsNotificationsOpen(!isNotificationsOpen)
-                  if (!isNotificationsOpen) {
-                    marcarNotificacionesLeidas()
-                  }
-                }}
-                className="flex items-center justify-between w-full px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-md text-base font-medium transition-colors duration-200"
+    {/* Notificaciones */}
+    <div>
+      <button
+        onClick={() => {
+          setIsNotificationsOpen(!isNotificationsOpen)
+          if (!isNotificationsOpen) marcarNotificacionesLeidas()
+        }}
+        className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium w-full text-left hover:bg-blue-50"
+      >
+        <BellIcon className="w-4 h-4" />
+        <span>Notificaciones</span>
+        {notificacionesNoLeidas > 0 && (
+          <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+            {notificacionesNoLeidas > 9 ? "9+" : notificacionesNoLeidas}
+          </span>
+        )}
+      </button>
+      {isNotificationsOpen && (
+        <div className="mt-2 border rounded-md max-h-80 overflow-y-auto">
+          {loadingNotificaciones ? (
+            <div className="p-4 text-center text-sm text-gray-500">Cargando...</div>
+          ) : notificaciones.length > 0 ? (
+            notificaciones.map((notif) => (
+              <div
+                key={notif._id}
+                className={`p-3 border-b text-sm ${!notif.leido ? "bg-blue-50" : ""}`}
               >
-                <div className="flex items-center space-x-3">
-                  <BellIcon className="w-5 h-5" />
-                  <span>Notificaciones</span>
+                <div className="flex items-start space-x-2">
+                  {getNotificationIcon(notif.tipo)}
+                  <div>
+                    <p className="text-gray-800">{notif.mensaje}</p>
+                    <p className="text-xs text-gray-500">{formatTimeAgo(notif.fecha)}</p>
+                  </div>
                 </div>
-                {notificacionesNoLeidas > 0 && (
-                  <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-                    {notificacionesNoLeidas > 9 ? "9+" : notificacionesNoLeidas}
-                  </span>
-                )}
-              </button>
-
-              <button
-                onClick={() => setIsSolicitudesOpen(!isSolicitudesOpen)}
-                className="flex items-center justify-between w-full px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-md text-base font-medium transition-colors duration-200"
-              >
-                <div className="flex items-center space-x-3">
-                  <UserPlusIcon className="w-5 h-5" />
-                  <span>Solicitudes</span>
-                </div>
-                {solicitudesPendientes > 0 && (
-                  <span className="bg-green-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-                    {solicitudesPendientes > 9 ? "9+" : solicitudesPendientes}
-                  </span>
-                )}
-              </button>
-
-              <a
-                href="/perfil"
-                className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium hover:bg-blue-50 transition-colors duration-200"
-                onClick={() => setIsOpen(false)}
-              >
-                <UserIcon className="w-5 h-5" />
-                <span>Mi Perfil</span>
-              </a>
-
-              <a
-                href="/login"
-                className="flex items-center space-x-3 text-red-600 hover:text-red-700 block px-3 py-2 rounded-md text-base font-medium w-full text-left hover:bg-red-50 transition-colors duration-200"
-                onClick={() => {
-                  setIsOpen(false)
-                  console.log("Cerrando sesión...")
-                }}
-              >
-                <LogoutIcon className="w-5 h-5" />
-                <span>Cerrar Sesión</span>
-              </a>
-            </div>
-          </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-4 text-center text-sm text-gray-500">No tienes notificaciones</div>
+          )}
         </div>
       )}
+    </div>
 
-      {/* Overlay para cerrar dropdowns en desktop */}
-      {(isProfileOpen || isNotificationsOpen || isSolicitudesOpen) && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => {
-            setIsProfileOpen(false)
-            setIsNotificationsOpen(false)
-            setIsSolicitudesOpen(false)
-          }}
-        />
+    {/* Solicitudes */}
+    <div>
+      <button
+        onClick={() => setIsSolicitudesOpen(!isSolicitudesOpen)}
+        className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium w-full text-left hover:bg-blue-50"
+      >
+        <UserPlusIcon className="w-4 h-4" />
+        <span>Solicitudes</span>
+        {solicitudesPendientes > 0 && (
+          <span className="ml-auto bg-green-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+            {solicitudesPendientes > 9 ? "9+" : solicitudesPendientes}
+          </span>
+        )}
+      </button>
+      {isSolicitudesOpen && (
+        <div className="mt-2 border rounded-md max-h-80 overflow-y-auto">
+          {loadingSolicitudes ? (
+            <div className="p-4 text-center text-sm text-gray-500">Cargando...</div>
+          ) : solicitudes.length > 0 ? (
+            solicitudes.map((solicitud) => (
+              <div key={solicitud._id} className="p-3 border-b text-sm flex items-center space-x-2">
+                <img
+                  src={solicitud.foto || "/placeholder.svg?height=40&width=40"}
+                  className="w-8 h-8 rounded-full object-cover"
+                  alt={`${solicitud.nombre} ${solicitud.apellidos}`}
+                  onError={(e) => {
+                    e.target.src = "/placeholder.svg?height=40&width=40"
+                  }}
+                />
+                <div className="flex-1">
+                  <p className="font-medium text-gray-800 truncate">{solicitud.nombre} {solicitud.apellidos}</p>
+                  <p className="text-xs text-gray-500">Quiere seguirte</p>
+                </div>
+                <div className="flex space-x-1">
+                  <button
+                    onClick={() => aceptarSolicitud(solicitud._id)}
+                    disabled={processingRequest[solicitud._id]}
+                    className="text-green-600 hover:bg-green-100 p-1 rounded-full"
+                  >
+                    {processingRequest[solicitud._id] === "accepting" ? (
+                      <div className="animate-spin h-4 w-4 border-b-2 border-green-600 rounded-full"></div>
+                    ) : (
+                      <CheckIcon className="w-4 h-4" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => rechazarSolicitud(solicitud._id)}
+                    disabled={processingRequest[solicitud._id]}
+                    className="text-red-600 hover:bg-red-100 p-1 rounded-full"
+                  >
+                    {processingRequest[solicitud._id] === "rejecting" ? (
+                      <div className="animate-spin h-4 w-4 border-b-2 border-red-600 rounded-full"></div>
+                    ) : (
+                      <XIcon className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-4 text-center text-sm text-gray-500">No tienes solicitudes</div>
+          )}
+        </div>
       )}
+    </div>
+
+    {/* Perfil */}
+    <div>
+      <button
+        onClick={() => setIsProfileOpen(!isProfileOpen)}
+        className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium w-full text-left hover:bg-blue-50"
+      >
+        <UserIcon className="w-4 h-4" />
+        <span>Mi Perfil</span>
+        <ChevronDownIcon className={`w-4 h-4 transform ${isProfileOpen ? "rotate-180" : ""}`} />
+      </button>
+      {isProfileOpen && (
+        <div className="mt-2 space-y-1 border rounded-md">
+          <a
+            href="/perfil"
+            onClick={() => setIsProfileOpen(false)}
+            className="block px-4 py-2 text-sm hover:bg-gray-100"
+          >
+            Ver Perfil
+          </a>
+          <a
+            href="/configuracion"
+            onClick={() => setIsProfileOpen(false)}
+            className="block px-4 py-2 text-sm hover:bg-gray-100"
+          >
+            Configuración
+          </a>
+          <a
+            href="/login"
+            onClick={() => {
+              setIsProfileOpen(false)
+              console.log("Cerrando sesión...")
+            }}
+            className="block px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+          >
+            Cerrar Sesión
+          </a>
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
+
     </nav>
   )
 }

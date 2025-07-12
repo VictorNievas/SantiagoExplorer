@@ -10,6 +10,9 @@ import math
 import bson
 from bson.errors import InvalidId
 from datetime import datetime
+import requests
+from bs4 import BeautifulSoup
+import time
 
 caminos = Blueprint('caminos', __name__)
 

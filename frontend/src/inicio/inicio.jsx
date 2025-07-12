@@ -10,6 +10,17 @@ const ChevronDownIcon = ({ className = "w-5 h-5" }) => (
   </svg>
 )
 
+const SearchIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+    />
+  </svg>
+)
+
 const MapIcon = ({ className = "w-5 h-5" }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path
@@ -58,6 +69,13 @@ function Inicio() {
   const [expandedCaminos, setExpandedCaminos] = useState({})
   const [completedEtapas, setCompletedEtapas] = useState({})
   const [uploadingPhoto, setUploadingPhoto] = useState({})
+  const [expandedInfoId, setExpandedInfoId] = useState(null)
+  const [busqueda, setBusqueda] = useState("")
+
+  const toggleEtapaInfo = (id) => {
+    setExpandedInfoId((prevId) => (prevId === id ? null : id))
+  }
+
 
   // Función helper para crear la clave compuesta
   const getEtapaKey = (caminoId, etapaId) => `${caminoId}_${etapaId}`
@@ -82,7 +100,7 @@ function Inicio() {
     ])
       .then(([caminosData, progresoData]) => {
         setCaminos(caminosData)
-
+        console.log("Caminos cargados:", caminosData) // Para debug
         const progresoMap = {}
 
         // Procesar el progreso del usuario
@@ -140,7 +158,7 @@ function Inicio() {
       async (position) => {
         const lat = position.coords.latitude
         const lon = position.coords.longitude
-
+        
         // Preparar formData
         const formData = new FormData()
         formData.append("id_usuario", localStorage.getItem("usuario"))
@@ -251,6 +269,11 @@ function Inicio() {
     )
   }
 
+  const caminosFiltrados = caminos.filter(c => 
+    c.nombre.toLowerCase().includes(busqueda.toLowerCase())
+  );
+
+
   const toggleEtapaCompletion = async (caminoId, etapaId) => {
     const etapaKey = getEtapaKey(caminoId, etapaId)
 
@@ -323,10 +346,22 @@ function Inicio() {
             <h1 className="text-4xl font-bold text-gray-900 mb-2">Caminos de Santiago</h1>
             <p className="text-lg text-gray-600">Descubre y completa las etapas de cada camino</p>
           </div>
-
+          {/* Filtros y búsqueda */}
+           <div className="flex-1 mb-6">
+              <div className="relative">
+                <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Buscar caminos..."
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                />
+              </div>
+            </div>
           {/* Caminos Grid */}
           <div className="grid gap-6">
-            {caminos.map((camino) => {
+            {caminosFiltrados.map((camino) => {
               const isExpanded = expandedCaminos[camino._id]
 
               // Calcular progreso correctamente usando las claves compuestas
@@ -422,13 +457,85 @@ function Inicio() {
                                     )}
                                   </div>
 
-                                  <div className="mb-2">
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                      {etapa.distancia_km} km
-                                    </span>
+                                  <div className="flex items-center space-x-3 mb-2">
+                                    <div>
+                                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        {etapa.distancia_km} km
+                                      </span>
+                                    </div>
+
+                                    <div>
+                                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        {etapa.duracion}
+                                      </span>
+                                    </div>
+
+                                    <a
+                                      href={`https://www.google.com/maps?q=${etapa.coordenadas.lat},${etapa.coordenadas.lng}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="
+                                        inline-flex
+                                        items-center
+                                        px-3
+                                        py-1.5
+                                        border
+                                        border-blue-600
+                                        text-blue-600
+                                        text-xs
+                                        font-medium
+                                        rounded
+                                        hover:bg-blue-600
+                                        hover:text-white
+                                        transition
+                                        duration-200
+                                        focus:outline-none
+                                        focus:ring-2
+                                        focus:ring-blue-400
+                                        focus:ring-opacity-50
+                                        select-none
+                                        cursor-pointer
+                                      "
+                                    >
+                                      📍 Ver mapa
+                                    </a>
+                                    <div>
+                                      <button
+                                        onClick={() => toggleEtapaInfo(etapa._id)}
+                                        className="mt-2 sm:mt-0 inline-flex items-center px-3 py-1.5 bg-blue-100 text-blue-800 text-xs font-medium rounded hover:bg-blue-200 transition"
+                                      >
+                                        ℹ️ Más info
+                                      </button>
+                                    </div>
+                                  </div>
+                                  
+                                  <p className="text-gray-600 mb-3">{etapa.descripcion}</p>
+                                  {/* NUEVO BLOQUE DE ESTRELLAS Y BOTÓN */}
+                                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
+                                    <div className="flex flex-col space-y-1 text-sm text-gray-700">
+                                      <div>
+                                        <strong>Dificultad:</strong>{" "}
+                                        <span className="text-yellow-500">
+                                          {"★".repeat(etapa.dificultad || 0)}
+                                          {"☆".repeat(5 - (etapa.dificultad || 0))}
+                                        </span>
+                                      </div>
+                                      <div>
+                                        <strong>Paisaje:</strong>{" "}
+                                        <span className="text-green-500">
+                                          {"★".repeat(etapa.paisaje || 0)}
+                                          {"☆".repeat(5 - (etapa.paisaje || 0))}
+                                        </span>
+                                      </div>
+                                    </div>                                    
                                   </div>
 
-                                  <p className="text-gray-600 mb-3">{etapa.descripcion}</p>
+                                  {expandedInfoId === etapa._id && (
+                                    <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-3 text-sm text-blue-900">
+                                      🛏️ <strong>Albergue más barato:</strong> {etapa.albergue} <br />
+                                      💰 <strong>Precio:</strong> {etapa.precio} €
+                                    </div>
+                                  )}
 
                                   {/* Foto completada */}
                                   {isCompleted && etapaData?.photo && (

@@ -486,6 +486,8 @@ function PerfilUsuario() {
       ) || 0
     const caminosIniciados = userData.caminos?.length || 0
     const distanciaTotal = userData.distancia_recorrida || 0
+    const seguidores = userData.seguidores?.length || 0
+    const siguiendo = userData.siguiendo?.length || 0
 
     // Calcular días activos (simulado - podrías calcularlo real con fechas)
     const diasActivos = Math.floor(totalEtapas * 1.5) // Simulación
@@ -751,6 +753,78 @@ function PerfilUsuario() {
         progreso: caminosIniciados >= 3 ? null : `${caminosIniciados}/3`,
         porcentaje: caminosIniciados >= 3 ? 100 : (caminosIniciados / 3) * 100,
         rareza: "raro",
+      },
+      {
+        id: "primeros seguidores",
+        categoria: "Social",
+        nombre: "Primeros Seguidores",
+        descripcion: "Conseguiste tus primeros 5 seguidores",
+        icono: "🤝",
+        color: "bg-blue-100 text-blue-800",
+        obtenido: seguidores >= 5,
+        progreso: seguidores >= 5 ? null : `${seguidores}/5`,
+        porcentaje: seguidores >= 5 ? 100 : (seguidores / 5) * 100,
+        rareza: "raro",
+      },
+      {
+        id: "influencer_local",
+        categoria: "Social",
+        nombre: "Influencer Local",
+        descripcion: "Has conseguido 25 seguidores",
+        icono: "📣",
+        color: "bg-green-100 text-green-800",
+        obtenido: seguidores >= 25,
+        progreso: seguidores >= 25 ? null : `${seguidores}/25`,
+        porcentaje: seguidores >= 25 ? 100 : (seguidores / 25) * 100,
+        rareza: "epico",
+      },
+      {
+        id: "estrella_social",
+        categoria: "Social",
+        nombre: "Estrella Social",
+        descripcion: "Llegaste a 100 seguidores",
+        icono: "🏅",
+        color: "bg-purple-100 text-purple-800",
+        obtenido: seguidores >= 100,
+        progreso: seguidores >= 100 ? null : `${seguidores}/100`,
+        porcentaje: seguidores >= 100 ? 100 : (seguidores / 100) * 100,
+        rareza: "legendario",
+      },
+      {
+        id: "primeros seguidos",
+        categoria: "Social",
+        nombre: "Curioso del Camino",
+        descripcion: "Comenzaste a seguir a 5 personas",
+        icono: "👀",
+        color: "bg-yellow-100 text-yellow-800",
+        obtenido: siguiendo >= 5,
+        progreso: siguiendo >= 5 ? null : `${siguiendo}/5`,
+        porcentaje: siguiendo >= 5 ? 100 : (siguiendo / 5) * 100,
+        rareza: "comun",
+      },
+      {
+        id: "explorador_social",
+        categoria: "Social",
+        nombre: "Explorador Social",
+        descripcion: "Estás siguiendo a 25 personas",
+        icono: "🧭",
+        color: "bg-pink-100 text-pink-800",
+        obtenido: siguiendo >= 25,
+        progreso: siguiendo >= 25 ? null : `${siguiendo}/25`,
+        porcentaje: siguiendo >= 25 ? 100 : (siguiendo / 25) * 100,
+        rareza: "raro",
+      },
+      {
+        id: "coleccionista_de_perfiles",
+        categoria: "Social",
+        nombre: "Coleccionista de Perfiles",
+        descripcion: "Sigues a 100 personas",
+        icono: "📌",
+        color: "bg-indigo-100 text-indigo-800",
+        obtenido: siguiendo >= 100,
+        progreso: siguiendo >= 100 ? null : `${siguiendo}/100`,
+        porcentaje: siguiendo >= 100 ? 100 : (siguiendo / 100) * 100,
+        rareza: "epico",
       },
     ]
   }
