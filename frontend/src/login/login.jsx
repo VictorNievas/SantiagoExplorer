@@ -4,6 +4,8 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 
+const apiURL = process.env.REACT_APP_API_URL
+
 // Iconos SVG
 const EmailIcon = ({ className = "w-5 h-5" }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,7 +102,7 @@ function Login({ onSwitchToRegister }) {
 
     try {
       // Aquí harías la llamada a tu API
-      const response = await fetch("http://localhost:5000/api/usuarios/login", {
+      const response = await fetch(`http://${apiURL}/api/usuarios/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

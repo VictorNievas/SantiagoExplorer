@@ -9,15 +9,15 @@ const LandingPage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white overflow-x-hidden">
       {/* Hero Section */}
       <section className="bg-cover bg-center bg-no-repeat h-screen relative" style={{ backgroundImage: "url('https://media.cnn.com/api/v1/images/stellar/prod/cnne-1446577-230829154445-06-body-camino-de-santiago-spain-pilgrimage-milestone.jpg?c=16x9&q=h_833,w_1480,c_fill')" }}>
         <div className="absolute inset-0 bg-black bg-opacity-50"></div>
         <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-4">
-          <h1 className="text-5xl md:text-7xl font-extrabold text-white" data-aos="fade-down">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold text-white" data-aos="fade-down">
             SantiagoExplorer
           </h1>
-          <p className="mt-4 text-xl md:text-2xl text-gray-200 max-w-2xl" data-aos="fade-up">
+          <p className="mt-4 text-lg sm:text-xl md:text-2xl text-gray-200 max-w-2xl" data-aos="fade-up">
             Explora, comparte y conecta con peregrinos del Camino de Santiago.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-4" data-aos="zoom-in">
@@ -33,8 +33,8 @@ const LandingPage = () => {
 
       {/* Funcionalidades */}
       <section className="py-20 px-6 bg-gray-50">
-        <h2 className="text-4xl font-bold text-center text-indigo-700 mb-12" data-aos="fade-up">¿Qué puedes hacer?</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 max-w-6xl mx-auto">
+        <h2 className="text-3xl sm:text-4xl font-bold text-center text-indigo-700 mb-12" data-aos="fade-up">¿Qué puedes hacer?</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10 max-w-6xl mx-auto">
           <div className="bg-white p-6 rounded-2xl shadow-xl text-center" data-aos="fade-right">
             <img src="https://cdn-icons-png.flaticon.com/512/684/684908.png" alt="Explora Caminos" className="h-20 mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">Explora Caminos</h3>
@@ -57,8 +57,8 @@ const LandingPage = () => {
       <section className="py-16 bg-white">
         <div className="max-w-5xl mx-auto px-4 flex flex-col md:flex-row items-center gap-10" data-aos="fade-up">
           <img src="https://www.spain.info/export/sites/segtur/.content/imagenes/destacados-homes-cuadrados/camino-santiago/peregrinos-camino-santiago-s1468341605.jpg" alt="Peregrino" className="rounded-2xl w-full md:w-1/2 shadow-lg" />
-          <div>
-            <h3 className="text-3xl font-bold text-indigo-700 mb-4">Una experiencia inolvidable</h3>
+          <div className="flex-1">
+            <h3 className="text-2xl sm:text-3xl font-bold text-indigo-700 mb-4">Una experiencia inolvidable</h3>
             <p className="text-gray-700 text-lg">
               Cada paso cuenta. Guarda tus avances, desbloquea medallas, sigue el progreso de otros peregrinos y revive tu experiencia cada vez que lo desees.
             </p>

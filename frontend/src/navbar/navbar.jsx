@@ -1,6 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { Link } from "react-router-dom"
+
+const apiURL = process.env.REACT_APP_API_URL
+
 
 // Iconos SVG
 const HomeIcon = ({ className = "w-5 h-5" }) => (
@@ -150,6 +154,7 @@ export default function Navbar() {
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [isSolicitudesOpen, setIsSolicitudesOpen] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Estados para notificaciones y solicitudes
   const [notificaciones, setNotificaciones] = useState([])
@@ -165,13 +170,22 @@ export default function Navbar() {
     { name: "Descubrir", href: "/descubrir", icon: CompassIcon },
   ]
 
+  const mobileItems = [
+    { name: "Inicio", href: "/inicio", icon: HomeIcon },
+    { name: "Descubrir", href: "/descubrir", icon: CompassIcon },
+    { name: "Perfil", href: `/perfil`, icon: UserIcon },
+  ]
+  const cerrarSesion = () => {
+    localStorage.removeItem("usuario")
+    window.location.href = "/login"
+  }
   // Cargar notificaciones
   const cargarNotificaciones = async () => {
     if (!usuarioId) return
 
     setLoadingNotificaciones(true)
     try {
-      const response = await fetch(`http://localhost:5000/api/usuarios/get_notificaciones?usuario_id=${usuarioId}`)
+      const response = await fetch(`http://${apiURL}/api/usuarios/get_notificaciones?usuario_id=${usuarioId}`)
       if (response.ok) {
         const data = await response.json()
         setNotificaciones(data)
@@ -189,7 +203,7 @@ export default function Navbar() {
 
     setLoadingSolicitudes(true)
     try {
-      const response = await fetch(`http://localhost:5000/api/usuarios/get_solicitudes?usuario_id=${usuarioId}`)
+      const response = await fetch(`http://${apiURL}/api/usuarios/get_solicitudes?usuario_id=${usuarioId}`)
       if (response.ok) {
         const data = await response.json()
         setSolicitudes(data)
@@ -206,7 +220,7 @@ export default function Navbar() {
     if (!usuarioId) return
 
     try {
-      await fetch("http://localhost:5000/api/usuarios/marcar_notificaciones_leidas", {
+      await fetch(`http://${apiURL}/api/usuarios/marcar_notificaciones_leidas`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -226,7 +240,7 @@ export default function Navbar() {
 
     try {
       // Simular endpoint - ajustar según tu API
-      const response = await fetch("http://localhost:5000/api/usuarios/gestionar_solicitud", {
+      const response = await fetch(`http://${apiURL}/api/usuarios/gestionar_solicitud`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -258,7 +272,7 @@ export default function Navbar() {
 
     try {
       // Simular endpoint - ajustar según tu API
-      const response = await fetch("http://localhost:5000/api/usuarios/gestionar_solicitud", {
+      const response = await fetch(`http://${apiURL}/api/usuarios/gestionar_solicitud`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -337,35 +351,35 @@ export default function Navbar() {
   const solicitudesPendientes = solicitudes.length
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <div className="flex-shrink-0">
-            <h1 className="text-2xl font-bold text-blue-600">SantiagoExplorer</h1>
-          </div>
+  <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex justify-between items-center h-16">
+        {/* Logo */}
+        <div className="flex-shrink-0 flex items-center">
+          <h1 className="text-xl md:text-2xl font-bold text-blue-600">SantiagoExplorer</h1>
+        </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-6">
-              {navigationItems.map((item) => {
-                const Icon = item.icon
-                return (
-                  <a
-                    key={item.name}
-                    href={item.href}
-                    className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 hover:bg-blue-50"
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{item.name}</span>
-                  </a>
-                )
-              })}
-            </div>
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex md:items-center md:space-x-6">
+          {/* Navigation Links */}
+          <div className="hidden md:flex md:space-x-6">
+            {navigationItems.map((item) => {
+              const Icon = item.icon
+              return (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 hover:bg-blue-50"
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{item.name}</span>
+                </a>
+              )
+            })}
           </div>
 
           {/* Desktop Actions */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-2">
             {/* Notificaciones */}
             <div className="relative">
               <button
@@ -376,6 +390,7 @@ export default function Navbar() {
                   }
                 }}
                 className="relative p-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                aria-label="Notificaciones"
               >
                 <BellIcon className="w-5 h-5" />
                 {notificacionesNoLeidas > 0 && (
@@ -434,6 +449,7 @@ export default function Navbar() {
               <button
                 onClick={() => setIsSolicitudesOpen(!isSolicitudesOpen)}
                 className="relative p-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                aria-label="Solicitudes"
               >
                 <UserPlusIcon className="w-5 h-5" />
                 {solicitudesPendientes > 0 && (
@@ -486,6 +502,7 @@ export default function Navbar() {
                                     ? "bg-gray-200 cursor-not-allowed"
                                     : "bg-green-100 hover:bg-green-200 text-green-600"
                                 }`}
+                                aria-label="Aceptar solicitud"
                               >
                                 {processingRequest[solicitud._id] === "accepting" ? (
                                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
@@ -501,6 +518,7 @@ export default function Navbar() {
                                     ? "bg-gray-200 cursor-not-allowed"
                                     : "bg-red-100 hover:bg-red-200 text-red-600"
                                 }`}
+                                aria-label="Rechazar solicitud"
                               >
                                 {processingRequest[solicitud._id] === "rejecting" ? (
                                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
@@ -528,11 +546,14 @@ export default function Navbar() {
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 hover:bg-blue-50"
+                aria-label="Menú de perfil"
               >
                 <UserIcon className="w-4 h-4" />
-                <span>Mi Perfil</span>
+                <span className="hidden lg:inline">Mi Perfil</span>
                 <ChevronDownIcon
-                  className={`w-4 h-4 transform transition-transform duration-200 ${isProfileOpen ? "rotate-180" : ""}`}
+                  className={`w-4 h-4 transform transition-transform duration-200 ${
+                    isProfileOpen ? "rotate-180" : ""
+                  }`}
                 />
               </button>
 
@@ -558,10 +579,9 @@ export default function Navbar() {
                     </a>
                     <hr className="my-1 border-gray-200" />
                     <a
-                      href="/login"
                       onClick={() => {
                         setIsProfileOpen(false)
-                        console.log("Cerrando sesión...")
+                        cerrarSesion()
                       }}
                       className="flex items-center w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
                     >
@@ -573,193 +593,210 @@ export default function Navbar() {
               )}
             </div>
           </div>
+        </div>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden">
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="text-gray-700 hover:text-blue-600 p-2 rounded-md hover:bg-blue-50 transition-colors duration-200"
-            >
-              {isOpen ? <CloseIcon /> : <MenuIcon />}
-              <span className="sr-only">{isOpen ? "Cerrar menú" : "Abrir menú"}</span>
-            </button>
+        {/* Mobile menu button */}
+<div className="md:hidden flex items-center">
+  {/* Notificaciones */}
+  <div className="relative">
+    <button
+      onClick={() => {
+        setIsNotificationsOpen(!isNotificationsOpen);
+        if (!isNotificationsOpen) marcarNotificacionesLeidas();
+      }}
+      className="relative p-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+      aria-label="Notificaciones"
+    >
+      <BellIcon className="w-5 h-5" />
+      {notificacionesNoLeidas > 0 && (
+        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+          {notificacionesNoLeidas > 9 ? "9+" : notificacionesNoLeidas}
+        </span>
+      )}
+    </button>
+    {isNotificationsOpen && (
+      <div className="absolute top-full mt-2 right-2 max-w-[90vw] w-64 sm:w-72 md:w-80 max-h-80 overflow-y-auto bg-white border border-gray-200 rounded-md shadow-lg z-50">
+        {loadingNotificaciones ? (
+          <div className="p-3 text-center text-sm text-gray-500">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mx-auto"></div>
+            Cargando...
           </div>
+        ) : notificaciones.length > 0 ? (
+          notificaciones.map((notif) => (
+            <div
+              key={notif._id}
+              className={`p-3 border-b text-sm ${
+                !notif.leido ? "bg-blue-50" : "bg-white"
+              }`}
+            >
+              <div className="flex items-start space-x-2">
+                {getNotificationIcon(notif.tipo)}
+                <div>
+                  <p className="text-gray-800">{notif.mensaje}</p>
+                  <p className="text-xs text-gray-500">{formatTimeAgo(notif.fecha)}</p>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="p-4 text-center text-sm text-gray-500">
+            No tienes notificaciones
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+
+  {/* Solicitudes */}
+  <div className="relative">
+    <button
+      onClick={() => setIsSolicitudesOpen(!isSolicitudesOpen)}
+      className="relative p-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+      aria-label="Solicitudes"
+    >
+      <UserIcon  className="w-5 h-5" />
+      {solicitudesPendientes > 0 && (
+        <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+          {solicitudesPendientes > 9 ? "9+" : solicitudesPendientes}
+        </span>
+      )}
+    </button>
+    {isSolicitudesOpen && (
+      <div className="absolute right-0 mt-2 w-64 sm:w-72 md:w-80 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+        {loadingSolicitudes ? (
+          <div className="p-3 text-center text-sm text-gray-500">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mx-auto"></div>
+            Cargando...
+          </div>
+        ) : solicitudes.length > 0 ? (
+          solicitudes.map((solicitud) => (
+            <div
+              key={solicitud._id}
+              className="p-3 border-b text-sm flex items-center space-x-3"
+            >
+              <img
+                src={solicitud.foto || "/placeholder.svg?height=40&width=40"}
+                className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                alt={`${solicitud.nombre} ${solicitud.apellidos}`}
+                onError={(e) => {
+                  e.target.src = "/placeholder.svg?height=40&width=40"
+                }}
+              />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-800 truncate">
+                  {solicitud.nombre} {solicitud.apellidos}
+                </p>
+                <p className="text-xs text-gray-500">Quiere seguirte</p>
+              </div>
+              <div className="flex space-x-1">
+                <button
+                  onClick={() => aceptarSolicitud(solicitud._id)}
+                  disabled={processingRequest[solicitud._id]}
+                  className="text-green-600 hover:bg-green-100 p-1 rounded-full"
+                  aria-label="Aceptar solicitud"
+                >
+                  {processingRequest[solicitud._id] === "accepting" ? (
+                    <div className="animate-spin h-4 w-4 border-b-2 border-green-600 rounded-full"></div>
+                  ) : (
+                    <CheckIcon className="w-4 h-4" />
+                  )}
+                </button>
+                <button
+                  onClick={() => rechazarSolicitud(solicitud._id)}
+                  disabled={processingRequest[solicitud._id]}
+                  className="text-red-600 hover:bg-red-100 p-1 rounded-full"
+                  aria-label="Rechazar solicitud"
+                >
+                  {processingRequest[solicitud._id] === "rejecting" ? (
+                    <div className="animate-spin h-4 w-4 border-b-2 border-red-600 rounded-full"></div>
+                  ) : (
+                    <XIcon className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="p-4 text-center text-sm text-gray-500">
+            No tienes solicitudes pendientes
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+  {/* Menú desplegable */}
+      <div className="relative ml-2">
+        <button
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          aria-label="Menú de usuario"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+          </svg>
+        </button>
+
+        {isMenuOpen && (
+          <div className="absolute right-0 mt-2 w-56 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+            <div className="py-1 px-1 space-y-1"> {/* Margenes internos mejorados */}
+              {/* Configuración */}
+              <Link
+                to="/configuracion"
+                onClick={() => setIsMenuOpen(false)}
+                className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                  </svg>
+                  Configuración
+                </div>
+              </Link>
+              
+              {/* Cerrar sesión */}
+              <button
+                onClick={() => {
+                  cerrarSesion();
+                  setIsMenuOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
+                  </svg>
+                  Cerrar sesión
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+</div>
+
         </div>
       </div>
+    
 
-      {/* Mobile Menu */}
-      {/* Mobile Dropdown */}
-{isOpen && (
-  <div className="md:hidden mt-2 space-y-2 bg-white border rounded-md p-4 shadow-lg">
-    {/* Navegación principal */}
-    <div className="space-y-2">
-      {navigationItems.map((item) => {
-        const Icon = item.icon
-        return (
+    
+
+
+    {/* Mobile Bottom Navigation */}
+    <div className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 shadow-lg md:hidden z-40">
+      <div className="flex justify-around items-center h-14">
+        {mobileItems.map((item) => (
           <a
             key={item.name}
             href={item.href}
-            className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 hover:bg-blue-50"
+            className="flex flex-col items-center justify-center text-xs text-gray-700 hover:text-blue-600 p-1 flex-1"
+            onClick={() => setIsOpen(false)}
           >
-            <Icon className="w-4 h-4" />
+            <item.icon className="w-6 h-6 mb-0.5" />
             <span>{item.name}</span>
           </a>
-        )
-      })}
+        ))}
+      </div>
     </div>
-
-    {/* Notificaciones */}
-    <div>
-      <button
-        onClick={() => {
-          setIsNotificationsOpen(!isNotificationsOpen)
-          if (!isNotificationsOpen) marcarNotificacionesLeidas()
-        }}
-        className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium w-full text-left hover:bg-blue-50"
-      >
-        <BellIcon className="w-4 h-4" />
-        <span>Notificaciones</span>
-        {notificacionesNoLeidas > 0 && (
-          <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-            {notificacionesNoLeidas > 9 ? "9+" : notificacionesNoLeidas}
-          </span>
-        )}
-      </button>
-      {isNotificationsOpen && (
-        <div className="mt-2 border rounded-md max-h-80 overflow-y-auto">
-          {loadingNotificaciones ? (
-            <div className="p-4 text-center text-sm text-gray-500">Cargando...</div>
-          ) : notificaciones.length > 0 ? (
-            notificaciones.map((notif) => (
-              <div
-                key={notif._id}
-                className={`p-3 border-b text-sm ${!notif.leido ? "bg-blue-50" : ""}`}
-              >
-                <div className="flex items-start space-x-2">
-                  {getNotificationIcon(notif.tipo)}
-                  <div>
-                    <p className="text-gray-800">{notif.mensaje}</p>
-                    <p className="text-xs text-gray-500">{formatTimeAgo(notif.fecha)}</p>
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="p-4 text-center text-sm text-gray-500">No tienes notificaciones</div>
-          )}
-        </div>
-      )}
-    </div>
-
-    {/* Solicitudes */}
-    <div>
-      <button
-        onClick={() => setIsSolicitudesOpen(!isSolicitudesOpen)}
-        className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium w-full text-left hover:bg-blue-50"
-      >
-        <UserPlusIcon className="w-4 h-4" />
-        <span>Solicitudes</span>
-        {solicitudesPendientes > 0 && (
-          <span className="ml-auto bg-green-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-            {solicitudesPendientes > 9 ? "9+" : solicitudesPendientes}
-          </span>
-        )}
-      </button>
-      {isSolicitudesOpen && (
-        <div className="mt-2 border rounded-md max-h-80 overflow-y-auto">
-          {loadingSolicitudes ? (
-            <div className="p-4 text-center text-sm text-gray-500">Cargando...</div>
-          ) : solicitudes.length > 0 ? (
-            solicitudes.map((solicitud) => (
-              <div key={solicitud._id} className="p-3 border-b text-sm flex items-center space-x-2">
-                <img
-                  src={solicitud.foto || "/placeholder.svg?height=40&width=40"}
-                  className="w-8 h-8 rounded-full object-cover"
-                  alt={`${solicitud.nombre} ${solicitud.apellidos}`}
-                  onError={(e) => {
-                    e.target.src = "/placeholder.svg?height=40&width=40"
-                  }}
-                />
-                <div className="flex-1">
-                  <p className="font-medium text-gray-800 truncate">{solicitud.nombre} {solicitud.apellidos}</p>
-                  <p className="text-xs text-gray-500">Quiere seguirte</p>
-                </div>
-                <div className="flex space-x-1">
-                  <button
-                    onClick={() => aceptarSolicitud(solicitud._id)}
-                    disabled={processingRequest[solicitud._id]}
-                    className="text-green-600 hover:bg-green-100 p-1 rounded-full"
-                  >
-                    {processingRequest[solicitud._id] === "accepting" ? (
-                      <div className="animate-spin h-4 w-4 border-b-2 border-green-600 rounded-full"></div>
-                    ) : (
-                      <CheckIcon className="w-4 h-4" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => rechazarSolicitud(solicitud._id)}
-                    disabled={processingRequest[solicitud._id]}
-                    className="text-red-600 hover:bg-red-100 p-1 rounded-full"
-                  >
-                    {processingRequest[solicitud._id] === "rejecting" ? (
-                      <div className="animate-spin h-4 w-4 border-b-2 border-red-600 rounded-full"></div>
-                    ) : (
-                      <XIcon className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="p-4 text-center text-sm text-gray-500">No tienes solicitudes</div>
-          )}
-        </div>
-      )}
-    </div>
-
-    {/* Perfil */}
-    <div>
-      <button
-        onClick={() => setIsProfileOpen(!isProfileOpen)}
-        className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium w-full text-left hover:bg-blue-50"
-      >
-        <UserIcon className="w-4 h-4" />
-        <span>Mi Perfil</span>
-        <ChevronDownIcon className={`w-4 h-4 transform ${isProfileOpen ? "rotate-180" : ""}`} />
-      </button>
-      {isProfileOpen && (
-        <div className="mt-2 space-y-1 border rounded-md">
-          <a
-            href="/perfil"
-            onClick={() => setIsProfileOpen(false)}
-            className="block px-4 py-2 text-sm hover:bg-gray-100"
-          >
-            Ver Perfil
-          </a>
-          <a
-            href="/configuracion"
-            onClick={() => setIsProfileOpen(false)}
-            className="block px-4 py-2 text-sm hover:bg-gray-100"
-          >
-            Configuración
-          </a>
-          <a
-            href="/login"
-            onClick={() => {
-              setIsProfileOpen(false)
-              console.log("Cerrando sesión...")
-            }}
-            className="block px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-          >
-            Cerrar Sesión
-          </a>
-        </div>
-      )}
-    </div>
-  </div>
-)}
-
-
-    </nav>
-  )
+  </nav>
+)
 }

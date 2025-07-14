@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import Navbar from "../navbar/navbar.jsx"
 
+const apiURL = process.env.REACT_APP_API_URL
+
 // Iconos SVG
 const UserIcon = ({ className = "w-5 h-5" }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -164,7 +166,7 @@ function Configuracion() {
           throw new Error("No se encontró el usuario")
         }
 
-        const response = await fetch(`http://localhost:5000/api/usuarios/get_usuario?usuario_id=${usuarioId}`)
+        const response = await fetch(`http://${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioId}`)
         if (!response.ok) throw new Error("Error al cargar datos del usuario")
 
         const usuario = await response.json()
@@ -258,7 +260,7 @@ function Configuracion() {
         formData.append("foto", perfilForm.foto)
       }
 
-      const response = await fetch("http://localhost:5000/api/usuarios/actualizar_perfil", {
+      const response = await fetch(`http://${apiURL}/api/usuarios/actualizar_perfil`, {
         method: "PUT",
         body: formData,
       })
@@ -298,7 +300,7 @@ function Configuracion() {
 
     try {
       const usuarioId = localStorage.getItem("usuario")
-      const response = await fetch("http://localhost:5000/api/usuarios/cambiar_password", {
+      const response = await fetch(`http://${apiURL}/api/usuarios/cambiar_password`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

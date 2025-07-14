@@ -9,9 +9,10 @@ import 'aos/dist/aos.css';
 import AOS from 'aos';
 import LandingPage from "./landingpage/landingpage.jsx"
 import { useEffect } from 'react';
+import { Navigate } from "react-router-dom";
 
 function App() {
-
+  const usuario = localStorage.getItem("usuario");
   useEffect(() => {
     AOS.init({ duration: 1000 });
   }, []);
@@ -19,7 +20,7 @@ function App() {
   return (
     <div className="Aplicacion">
       <Routes>
-        <Route path="/" element={ <LandingPage /> } />
+        <Route path="/" element={usuario ? <Navigate to="/inicio" /> : <LandingPage />} />
         <Route path="/login" element={ <Login /> } />
         <Route path="/registro" element={ <Register /> } />
         <Route path="/inicio" element={ <Inicio /> } />

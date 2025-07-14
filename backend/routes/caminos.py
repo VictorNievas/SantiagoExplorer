@@ -390,3 +390,5 @@ def comentar_etapa():
 
     except InvalidId:
         return jsonify({"error": "ID inválido"}), 400
+
+

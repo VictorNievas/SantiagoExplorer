@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import Navbar from "../navbar/navbar.jsx"
 
+const apiURL = process.env.REACT_APP_API_URL
+
 // Iconos SVG
 const ChevronDownIcon = ({ className = "w-5 h-5" }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -89,11 +91,11 @@ function Inicio() {
     }
 
     Promise.all([
-      fetch("http://localhost:5000/api/caminos/get_caminos").then((res) => {
+      fetch(`http://${apiURL}/api/caminos/get_caminos`).then((res) => {
         if (!res.ok) throw new Error("Error al cargar caminos")
         return res.json()
       }),
-      fetch(`http://localhost:5000/api/caminos/caminos_usuario?usuario_id=${usuario}`).then((res) => {
+      fetch(`http://${apiURL}/api/caminos/caminos_usuario?usuario_id=${usuario}`).then((res) => {
         if (!res.ok) throw new Error("Error al cargar progreso del usuario")
         return res.json()
       }),
@@ -170,7 +172,7 @@ function Inicio() {
         formData.append("fecha", new Date().toISOString())
 
         try {
-          const response = await fetch("http://localhost:5000/api/caminos/subir_imagen", {
+          const response = await fetch(`http://${apiURL}/api/caminos/subir_imagen`, {
             method: "POST",
             body: formData,
           })
@@ -193,7 +195,7 @@ function Inicio() {
             alert("¡Etapa completada exitosamente!")
             //Anadir un nivel al usuario y anadir los kilometros recorridos
             try{
-              const response = await fetch(`http://localhost:5000/api/caminos/get_camino?camino_id=${caminoId}`, {
+              const response = await fetch(`http://${apiURL}/api/caminos/get_camino?camino_id=${caminoId}`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' }
               });
@@ -203,7 +205,7 @@ function Inicio() {
                 const distanciaRecorrida = camino.etapas[etapaId-1].distancia_km || 0
                 const usuarioId = localStorage.getItem('usuario')
 
-                await fetch("http://localhost:5000/api/usuarios/actualizar_distancia", {
+                await fetch(`http://${apiURL}/api/usuarios/actualizar_distancia`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -212,7 +214,7 @@ function Inicio() {
                   })
                 })
 
-                await fetch("http://localhost:5000/api/usuarios/actualizar_nivel", {
+                await fetch(`http://${apiURL}/api/usuarios/actualizar_nivel`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -229,7 +231,7 @@ function Inicio() {
 
                 const totalEtapas = camino.etapas?.length || 0
                 if (completedCount === totalEtapas) {
-                  await fetch("http://localhost:5000/api/usuarios/actualizar_nivel", {
+                  await fetch(`http://${apiURL}/api/usuarios/actualizar_nivel`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -238,7 +240,7 @@ function Inicio() {
                     })
                   })
 
-                  await fetch("http://localhost:5000/api/usuarios/anadir_logro", {
+                  await fetch(`http://${apiURL}/api/usuarios/anadir_logro`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -282,7 +284,7 @@ function Inicio() {
       if (window.confirm("¿Estás seguro de que quieres desmarcar esta etapa como completada?")) {
         try {
           // Aquí podrías hacer una llamada al backend para eliminar el progreso
-          // const response = await fetch(`http://localhost:5000/api/caminos/eliminar_progreso`, {
+          // const response = await fetch(`http://${apiURL}/api/caminos/eliminar_progreso`, {
           //   method: 'DELETE',
           //   headers: { 'Content-Type': 'application/json' },
           //   body: JSON.stringify({
@@ -394,7 +396,6 @@ function Inicio() {
                         {/* Progress Bar */}
                         <div className="mb-4">
                           <div className="flex justify-between text-sm text-gray-600 mb-1">
-                            <span>Progreso</span>
                             <span>
                               {completedCount}/{totalEtapas} etapas completadas ({Math.round(progressPercentage)}%)
                             </span>
@@ -438,15 +439,14 @@ function Inicio() {
                                 isCompleted ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"
                               }`}
                             >
-                              <div className="flex items-start justify-between">
+                              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                                {/* IZQUIERDA */}
                                 <div className="flex-1">
                                   <div className="flex items-center space-x-3 mb-2">
                                     <span className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full text-sm font-semibold">
                                       {index + 1}
                                     </span>
-                                    <h4
-                                      className={`text-lg font-semibold ${isCompleted ? "text-green-800" : "text-gray-900"}`}
-                                    >
+                                    <h4 className={`text-lg font-semibold ${isCompleted ? "text-green-800" : "text-gray-900"}`}>
                                       {etapa.nombre}
                                     </h4>
                                     {isCompleted && (
@@ -457,61 +457,32 @@ function Inicio() {
                                     )}
                                   </div>
 
-                                  <div className="flex items-center space-x-3 mb-2">
-                                    <div>
-                                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                        {etapa.distancia_km} km
-                                      </span>
-                                    </div>
-
-                                    <div>
-                                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                        {etapa.duracion}
-                                      </span>
-                                    </div>
-
+                                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                      {etapa.distancia_km} km
+                                    </span>
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                      {etapa.duracion}
+                                    </span>
                                     <a
                                       href={`https://www.google.com/maps?q=${etapa.coordenadas.lat},${etapa.coordenadas.lng}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="
-                                        inline-flex
-                                        items-center
-                                        px-3
-                                        py-1.5
-                                        border
-                                        border-blue-600
-                                        text-blue-600
-                                        text-xs
-                                        font-medium
-                                        rounded
-                                        hover:bg-blue-600
-                                        hover:text-white
-                                        transition
-                                        duration-200
-                                        focus:outline-none
-                                        focus:ring-2
-                                        focus:ring-blue-400
-                                        focus:ring-opacity-50
-                                        select-none
-                                        cursor-pointer
-                                      "
+                                      className="inline-flex items-center px-3 py-1.5 border border-blue-600 text-blue-600 text-xs font-medium rounded hover:bg-blue-600 hover:text-white transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 select-none cursor-pointer"
                                     >
                                       📍 Ver mapa
                                     </a>
-                                    <div>
-                                      <button
-                                        onClick={() => toggleEtapaInfo(etapa._id)}
-                                        className="mt-2 sm:mt-0 inline-flex items-center px-3 py-1.5 bg-blue-100 text-blue-800 text-xs font-medium rounded hover:bg-blue-200 transition"
-                                      >
-                                        ℹ️ Más info
-                                      </button>
-                                    </div>
+                                    <button
+                                      onClick={() => toggleEtapaInfo(etapa._id)}
+                                      className="inline-flex items-center px-3 py-1.5 bg-blue-100 text-blue-800 text-xs font-medium rounded hover:bg-blue-200 transition"
+                                    >
+                                      ℹ️ Más info
+                                    </button>
                                   </div>
-                                  
+
                                   <p className="text-gray-600 mb-3">{etapa.descripcion}</p>
-                                  {/* NUEVO BLOQUE DE ESTRELLAS Y BOTÓN */}
-                                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
+
+                                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
                                     <div className="flex flex-col space-y-1 text-sm text-gray-700">
                                       <div>
                                         <strong>Dificultad:</strong>{" "}
@@ -527,7 +498,7 @@ function Inicio() {
                                           {"☆".repeat(5 - (etapa.paisaje || 0))}
                                         </span>
                                       </div>
-                                    </div>                                    
+                                    </div>
                                   </div>
 
                                   {expandedInfoId === etapa._id && (
@@ -537,7 +508,6 @@ function Inicio() {
                                     </div>
                                   )}
 
-                                  {/* Foto completada */}
                                   {isCompleted && etapaData?.photo && (
                                     <div className="mb-3">
                                       <p className="text-sm text-green-600 mb-2">Completada el {etapaData.date}</p>
@@ -553,8 +523,9 @@ function Inicio() {
                                   )}
                                 </div>
 
-                                <div className="ml-4 flex flex-col space-y-2">
-                                  {!isCompleted ? (
+                                {/* DERECHA */}
+                                {!isCompleted && (
+                                  <div className="w-full sm:w-auto">
                                     <div className="relative">
                                       <input
                                         type="file"
@@ -564,7 +535,7 @@ function Inicio() {
                                         disabled={isUploading}
                                       />
                                       <button
-                                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                                        className={`w-full sm:w-auto flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
                                           isUploading
                                             ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                                             : "bg-green-600 hover:bg-green-700 text-white"
@@ -584,18 +555,12 @@ function Inicio() {
                                         )}
                                       </button>
                                     </div>
-                                  ) : (
-                                    <button
-                                      onClick={() => toggleEtapaCompletion(camino._id, etapa._id)}
-                                      className="flex items-center space-x-2 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-sm font-medium transition-colors duration-200"
-                                    >
-                                      <span>Desmarcar</span>
-                                    </button>
-                                  )}
-                                </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
-                          )
+                          );
+
                         })}
                       </div>
                     </div>

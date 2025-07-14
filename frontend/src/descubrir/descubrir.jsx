@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import Navbar from "../navbar/navbar.jsx"
 
+const apiURL = process.env.REACT_APP_API_URL
+
 // Iconos SVG
 const SearchIcon = ({ className = "w-5 h-5" }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -139,13 +141,13 @@ const PerfilModal = ({ usuario, onClose }) => {
     const cargarUsuarioActual = async () => {
       if (usuarioActual) {
         try {
-          const response = await fetch(`http://localhost:5000/api/usuarios/get_usuario?usuario_id=${usuarioActual}`)
+          const response = await fetch(`http://${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioActual}`)
           if (response.ok) {
             const userData = await response.json()
             setUsuarioActualData(userData)
           }
           // Verificar estado de relación
-          const responseRelacion = await fetch(`http://localhost:5000/api/usuarios/relacion?usuario_id_e=${usuarioActual}&usuario_id_r=${usuario._id}`)
+          const responseRelacion = await fetch(`http://${apiURL}/api/usuarios/relacion?usuario_id_e=${usuarioActual}&usuario_id_r=${usuario._id}`)
           if (responseRelacion.ok) {
             const relacionData = await responseRelacion.json()
             console.log("Estado de relación:", relacionData)
@@ -164,7 +166,7 @@ const PerfilModal = ({ usuario, onClose }) => {
   }, [usuarioActual])
 
   const handleEnviarSolicitud = async () => {
-    const response = await fetch("http://localhost:5000/api/usuarios/seguir", {
+    const response = await fetch(`http://${apiURL}/api/usuarios/seguir`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -190,7 +192,7 @@ const PerfilModal = ({ usuario, onClose }) => {
   };
 
   const handleCancelarSolicitud = async () => {
-    const response = await fetch("http://localhost:5000/api/usuarios/cancelar_solicitud", {
+    const response = await fetch(`http://${apiURL}/api/usuarios/cancelar_solicitud`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -210,7 +212,7 @@ const PerfilModal = ({ usuario, onClose }) => {
   };
 
   const handleDejarDeSeguir = async () => {
-    const response = await fetch("http://localhost:5000/api/usuarios/dejar_seguir", {
+    const response = await fetch(`http://${apiURL}/api/usuarios/dejar_seguir`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -231,139 +233,139 @@ const PerfilModal = ({ usuario, onClose }) => {
   if (!usuario) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header del Modal */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <img
-                src={usuario.foto || "/placeholder.svg?height=80&width=80"}
-                alt={`${usuario.nombre} ${usuario.apellidos}`}
-                className="w-16 h-16 rounded-full object-cover border-2 border-blue-200"
-                onError={(e) => {
-                  e.target.src = "/placeholder.svg?height=80&width=80"
-                }}
-              />
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {usuario.nombre} {usuario.apellidos}
-                </h2>
-                <p className="text-gray-600">{usuario.gmail}</p>
-                <div className="flex items-center space-x-4 mt-2">
-                  <span className="text-sm text-blue-600 font-medium">Nivel {usuario.nivel || 1}</span>
-                  <span className="text-sm text-gray-500">{usuario.etapas_completadas || 0} etapas completadas</span>
-                </div>
-                <div className="flex items-center space-x-4 mt-1">
-                  <span className="text-sm text-gray-600">
-                    <strong>{usuario.seguidores?.length || 0}</strong> seguidores
-                  </span>
-                  <span className="text-sm text-gray-600">
-                    <strong>{usuario.siguiendo?.length || 0}</strong> seguidos
-                  </span>
-                </div>
+  <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div className="bg-white rounded-lg shadow-xl max-w-full w-full max-h-[90vh] overflow-y-auto">
+      {/* Header del Modal */}
+      <div className="p-6 border-b border-gray-200">
+        <div className="flex flex-col md:flex-row items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <img
+              src={usuario.foto || "/placeholder.svg?height=80&width=80"}
+              alt={`${usuario.nombre} ${usuario.apellidos}`}
+              className="w-16 h-16 rounded-full object-cover border-2 border-blue-200"
+              onError={(e) => {
+                e.target.src = "/placeholder.svg?height=80&width=80";
+              }}
+            />
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                {usuario.nombre} {usuario.apellidos}
+              </h2>
+              <p className="text-gray-600">{usuario.gmail}</p>
+              <div className="flex items-center space-x-4 mt-2">
+                <span className="text-sm text-blue-600 font-medium">Nivel {usuario.nivel || 1}</span>
+                <span className="text-sm text-gray-500">{usuario.etapas_completadas || 0} etapas completadas</span>
+              </div>
+              <div className="flex items-center space-x-4 mt-1">
+                <span className="text-sm text-gray-600">
+                  <strong>{usuario.seguidores?.length || 0}</strong> seguidores
+                </span>
+                <span className="text-sm text-gray-600">
+                  <strong>{usuario.siguiendo?.length || 0}</strong> seguidos
+                </span>
               </div>
             </div>
+          </div>
 
-            <div className="flex items-center space-x-2">
-              {/* Botón dinámico de seguir */}
-              {estadoRelacion === "siguiendo" && (
-                <button
-                  onClick={handleDejarDeSeguir}
-                  className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
-                >
-                  Siguiendo
-                </button>
-              )}
-
-              {estadoRelacion === "pendiente" && (
-                <button
-                  onClick={handleCancelarSolicitud}
-                  className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-colors"
-                >
-                  Solicitud enviada
-                </button>
-              )}
-
-              {estadoRelacion === "ninguna" && (
-                <button
-                  onClick={handleEnviarSolicitud}
-                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-                >
-                  Seguir
-                </button>
-              )}
-
+          <div className="flex items-center space-x-2 mt-4 md:mt-0">
+            {/* Botón dinámico de seguir */}
+            {estadoRelacion === "siguiendo" && (
               <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                onClick={handleDejarDeSeguir}
+                className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
               >
-                <CloseIcon className="w-6 h-6" />
+                Siguiendo
               </button>
-            </div>
+            )}
+
+            {estadoRelacion === "pendiente" && (
+              <button
+                onClick={handleCancelarSolicitud}
+                className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-colors"
+              >
+                Solicitud enviada
+              </button>
+            )}
+
+            {estadoRelacion === "ninguna" && (
+              <button
+                onClick={handleEnviarSolicitud}
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Seguir
+              </button>
+            )}
+
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <CloseIcon className="w-6 h-6" />
+            </button>
           </div>
-        </div>
-
-
-        {/* Estadísticas del Usuario */}
-        <div className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{usuario.etapas_completadas || 0}</div>
-              <div className="text-sm text-gray-600">Etapas</div>
-            </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">{Math.round(usuario.distancia_recorrida || 0)} km</div>
-              <div className="text-sm text-gray-600">Recorridos</div>
-            </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">{usuario.caminos_iniciados || 0}</div>
-              <div className="text-sm text-gray-600">Caminos</div>
-            </div>
-            <div className="text-center p-4 bg-yellow-50 rounded-lg">
-              <div className="text-2xl font-bold text-yellow-600">{usuario.fotos_subidas || 0}</div>
-              <div className="text-sm text-gray-600">Fotos</div>
-            </div>
-          </div>
-
-          {/* Últimas Etapas del Usuario */}
-          {usuario.ultimas_etapas && usuario.ultimas_etapas.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Últimas Etapas Completadas</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {usuario.ultimas_etapas.slice(0, 4).map((etapa, index) => (
-                  <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex items-start space-x-3">
-                      {etapa.foto ? (
-                        <img
-                          src={etapa.foto || "/placeholder.svg"}
-                          alt={etapa.nombre}
-                          className="w-12 h-12 object-cover rounded-lg"
-                          onError={(e) => {
-                            e.target.src = "/placeholder.svg?height=48&width=48"
-                          }}
-                        />
-                      ) : (
-                        <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                          <RouteIcon className="w-6 h-6 text-gray-400" />
-                        </div>
-                      )}
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 text-sm">{etapa.nombre}</h4>
-                        <p className="text-xs text-gray-600">{etapa.caminoNombre}</p>
-                        <p className="text-xs text-gray-500">{new Date(etapa.fecha).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Estadísticas del Usuario */}
+      <div className="p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center p-4 bg-blue-50 rounded-lg">
+            <div className="text-2xl font-bold text-blue-600">{usuario.etapas_completadas || 0}</div>
+            <div className="text-sm text-gray-600">Etapas</div>
+          </div>
+          <div className="text-center p-4 bg-green-50 rounded-lg">
+            <div className="text-2xl font-bold text-green-600">{Math.round(usuario.distancia_recorrida || 0)} km</div>
+            <div className="text-sm text-gray-600">Recorridos</div>
+          </div>
+          <div className="text-center p-4 bg-purple-50 rounded-lg">
+            <div className="text-2xl font-bold text-purple-600">{usuario.caminos_iniciados || 0}</div>
+            <div className="text-sm text-gray-600">Caminos</div>
+          </div>
+          <div className="text-center p-4 bg-yellow-50 rounded-lg">
+            <div className="text-2xl font-bold text-yellow-600">{usuario.fotos_subidas || 0}</div>
+            <div className="text-sm text-gray-600">Fotos</div>
+          </div>
+        </div>
+
+        {/* Últimas Etapas del Usuario */}
+        {usuario.ultimas_etapas && usuario.ultimas_etapas.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Últimas Etapas Completadas</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {usuario.ultimas_etapas.slice(0, 4).map((etapa, index) => (
+                <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-start space-x-3">
+                    {etapa.foto ? (
+                      <img
+                        src={etapa.foto || "/placeholder.svg"}
+                        alt={etapa.nombre}
+                        className="w-12 h-12 object-cover rounded-lg"
+                        onError={(e) => {
+                          e.target.src = "/placeholder.svg?height=48&width=48";
+                        }}
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                        <RouteIcon className="w-6 h-6 text-gray-400" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 text-sm">{etapa.nombre}</h4>
+                      <p className="text-xs text-gray-600">{etapa.caminoNombre}</p>
+                      <p className="text-xs text-gray-500">{new Date(etapa.fecha).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
-  )
+  </div>
+);
+
 }
 
 // Componente para cada post de etapa
@@ -388,7 +390,7 @@ const EtapaPost = ({ etapa, onUsuarioClick }) => {
     const cargarUsuarioActual = async () => {
       if (usuarioActual) {
         try {
-          const response = await fetch(`http://localhost:5000/api/usuarios/get_usuario?usuario_id=${usuarioActual}`)
+          const response = await fetch(`http://${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioActual}`)
           if (response.ok) {
             const userData = await response.json()
             setUsuarioActualData(userData)
@@ -412,7 +414,7 @@ const EtapaPost = ({ etapa, onUsuarioClick }) => {
       for (const userId of usuariosUnicos) {
         if (!usuariosComentarios[userId]) {
           try {
-            const response = await fetch(`http://localhost:5000/api/usuarios/get_usuario?usuario_id=${userId}`)
+            const response = await fetch(`http://${apiURL}/api/usuarios/get_usuario?usuario_id=${userId}`)
             if (response.ok) {
               const userData = await response.json()
               usuariosData[userId] = userData
@@ -458,7 +460,7 @@ const handleLike = async () => {
   setLoadingLike(true)
 
   try {
-    const response = await fetch("http://localhost:5000/api/caminos/dar_like", {
+    const response = await fetch(`http://${apiURL}/api/caminos/dar_like`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -512,7 +514,7 @@ const handleLike = async () => {
     setLoadingComment(true)
 
     try {
-      const response = await fetch("http://localhost:5000/api/caminos/comentar_etapa", {
+      const response = await fetch(`http://${apiURL}/api/caminos/comentar_etapa`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -663,12 +665,15 @@ const handleLike = async () => {
             </div>
           </div>
 
-          {etapa.descripcion && <p className="text-gray-700 text-sm mb-3 line-clamp-3">{etapa.descripcion}</p>}
+          {etapa.descripcion && (
+            <p className="text-gray-700 text-sm mb-3 line-clamp-3">{etapa.descripcion}</p>
+          )}
 
           {/* Ubicación mejorada */}
           {etapa.lat && etapa.lon && (
             <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="flex items-start justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                {/* Coordenadas */}
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-2">
                     <MapPinIcon className="w-4 h-4 text-blue-600" />
@@ -683,9 +688,11 @@ const handleLike = async () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Botón Google Maps */}
                 <button
                   onClick={openGoogleMaps}
-                  className="flex items-center space-x-1 px-3 py-1 bg-blue-600 text-white text-xs rounded-full hover:bg-blue-700 transition-colors"
+                  className="flex items-center justify-center space-x-1 px-3 py-2 bg-blue-600 text-white text-xs rounded-full hover:bg-blue-700 transition-colors w-full sm:w-auto"
                 >
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -700,6 +707,7 @@ const handleLike = async () => {
               </div>
             </div>
           )}
+
 
           {/* Acciones */}
           <div className="flex items-center justify-between pt-3 border-t border-gray-100">
@@ -854,26 +862,26 @@ const handleLike = async () => {
               />
             </div>
 
-            {/* Información superpuesta */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6 rounded-b-lg">
+            {/* INFO SUPERPUESTA PARA PANTALLAS GRANDES */}
+            <div className="hidden sm:block absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6 rounded-b-lg">
               <div className="text-white">
                 <h3 className="text-2xl font-bold mb-2">{etapa.nombre_etapa}</h3>
+
                 <div className="flex items-center space-x-4 mb-3">
                   <div className="flex items-center space-x-2">
                     <RouteIcon className="w-5 h-5" />
                     <span className="text-lg">{etapa.nombre_camino}</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm">
-                      {etapa.distancia_km} km
-                    </span>
-                  </div>
+                  <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm">
+                    {etapa.distancia_km} km
+                  </span>
                 </div>
 
                 <div className="flex items-center justify-between">
+                  {/* Usuario */}
                   <div className="flex items-center space-x-3">
                     <img
-                      src={etapa.usuario_foto || "/placeholder.svg?height=40&width=40"}
+                      src={etapa.usuario_foto || "/placeholder.svg"}
                       alt={etapa.usuario_nombre}
                       className="w-10 h-10 rounded-full object-cover border-2 border-white/30"
                     />
@@ -891,7 +899,7 @@ const handleLike = async () => {
                     </div>
                   </div>
 
-                  {/* Acciones en el modal */}
+                  {/* Acciones */}
                   <div className="flex items-center space-x-3">
                     <button
                       onClick={(e) => {
@@ -935,9 +943,65 @@ const handleLike = async () => {
                   </div>
                 </div>
 
-                {etapa.descripcion && <p className="mt-3 text-sm opacity-90 line-clamp-2">{etapa.descripcion}</p>}
+                {etapa.descripcion && (
+                  <p className="mt-3 text-sm opacity-90 line-clamp-2">{etapa.descripcion}</p>
+                )}
               </div>
             </div>
+
+            {/* INFO NORMAL PARA MÓVIL - VERSIÓN PREMIUM */}
+          <div className="block md:hidden bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-b-xl space-y-5 border border-gray-700 shadow-xl">
+            {/* Título con efecto sutil */}
+            <h3 className="text-2xl font-bold text-white tracking-tight">
+              <span className="bg-clip-text  bg-gradient-to-r from-blue-400 to-cyan-400">
+                {etapa.nombre_etapa}
+              </span>
+            </h3>
+
+            {/* Camino + Distancia */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3 text-gray-300 group">
+                <RouteIcon className="w-6 h-6 text-cyan-400 group-hover:text-blue-400 transition-colors" />
+                <span className="text-base font-medium">{etapa.nombre_camino}</span>
+              </div>
+              <span className="text-sm font-medium bg-gray-700/50 text-gray-100 px-3 py-1.5 rounded-full border border-gray-600/50 backdrop-blur-sm">
+                {etapa.distancia_km} km
+              </span>
+            </div>
+
+            {/* Información de usuario */}
+            <div className="flex items-center space-x-4 pt-2">
+              <div className="relative">
+                <img
+                  src={etapa.usuario_foto || "/placeholder.svg"}
+                  alt={etapa.usuario_nombre}
+                  className="w-10 h-10 rounded-full object-cover border-2 border-gray-600/30 shadow-sm"
+                />
+                <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border border-gray-800"></span>
+              </div>
+              <div className="flex-1">
+                <p className="text-base font-medium text-gray-100">
+                  {etapa.usuario_nombre} {etapa.usuario_apellidos}
+                </p>
+                <p className="text-sm text-gray-400">
+                  {new Date(etapa.fecha).toLocaleDateString("es-ES", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </p>
+              </div>
+            </div>
+
+            {/* Descripción */}
+            {etapa.descripcion && (
+              <div className="pt-2">
+                <p className="text-sm text-gray-300 leading-relaxed">
+                  {etapa.descripcion}
+                </p>
+              </div>
+            )}
+          </div>
           </div>
         </div>
       )}
@@ -969,7 +1033,7 @@ function DescubrirSocial() {
         setLoading(true)
 
         // Primero obtenemos todos los usuarios
-        const usuariosResponse = await fetch("http://localhost:5000/api/usuarios/get_usuarios")
+        const usuariosResponse = await fetch(`http://${apiURL}/api/usuarios/get_usuarios`)
         if (!usuariosResponse.ok) {
           throw new Error("Error al cargar usuarios")
         }
@@ -1002,7 +1066,7 @@ function DescubrirSocial() {
                   // Obtener datos del camino usando el ObjectId
                   const caminoId = camino.id_camino.$oid || camino.id_camino
                   const caminoResponse = await fetch(
-                    `http://localhost:5000/api/caminos/get_camino?camino_id=${caminoId}`,
+                    `http://${apiURL}/api/caminos/get_camino?camino_id=${caminoId}`,
                   )
                   if (!caminoResponse.ok) continue
 
@@ -1091,7 +1155,7 @@ function DescubrirSocial() {
   useEffect(() => {
     const cargarTodosUsuarios = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/usuarios/get_usuarios")
+        const response = await fetch(`http://${apiURL}/api/usuarios/get_usuarios`)
         if (response.ok) {
           const usuarios = await response.json()
           setTodosLosUsuarios(usuarios)
@@ -1106,7 +1170,7 @@ function DescubrirSocial() {
   const handleUsuarioClick = async (usuarioId) => {
     try {
       // Cargar datos completos del usuario
-      const usuarioResponse = await fetch(`http://localhost:5000/api/usuarios/get_usuario?usuario_id=${usuarioId}`)
+      const usuarioResponse = await fetch(`http://${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioId}`)
       if (!usuarioResponse.ok) {
         throw new Error("Error al cargar datos del usuario")
       }
@@ -1130,7 +1194,7 @@ function DescubrirSocial() {
         for (const camino of usuarioData.caminos) {
           try {
             const caminoId = camino.id_camino.$oid || camino.id_camino
-            const caminoResponse = await fetch(`http://localhost:5000/api/caminos/get_camino?camino_id=${caminoId}`)
+            const caminoResponse = await fetch(`http://${apiURL}/api/caminos/get_camino?camino_id=${caminoId}`)
             if (caminoResponse.ok) {
               const caminoData = await caminoResponse.json()
               if (camino.etapas_completadas && Array.isArray(camino.etapas_completadas)) {

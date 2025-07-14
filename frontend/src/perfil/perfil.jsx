@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import Navbar from "../navbar/navbar.jsx"
 
+const apiURL = process.env.REACT_APP_API_URL
+
 // Iconos SVG
 const UserIcon = ({ className = "w-5 h-5" }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -24,13 +26,13 @@ const PerfilModal = ({ usuario, onClose }) => {
     const cargarUsuarioActual = async () => {
       if (usuarioActual) {
         try {
-          const response = await fetch(`http://localhost:5000/api/usuarios/get_usuario?usuario_id=${usuarioActual}`)
+          const response = await fetch(`http://${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioActual}`)
           if (response.ok) {
             const userData = await response.json()
             setUsuarioActualData(userData)
           }
           // Verificar estado de relación
-          const responseRelacion = await fetch(`http://localhost:5000/api/usuarios/relacion?usuario_id_e=${usuarioActual}&usuario_id_r=${usuario._id}`)
+          const responseRelacion = await fetch(`http://${apiURL}/api/usuarios/relacion?usuario_id_e=${usuarioActual}&usuario_id_r=${usuario._id}`)
           if (responseRelacion.ok) {
             const relacionData = await responseRelacion.json()
             console.log("Estado de relación:", relacionData)
@@ -49,7 +51,7 @@ const PerfilModal = ({ usuario, onClose }) => {
   }, [usuarioActual])
 
   const handleEnviarSolicitud = async () => {
-    const response = await fetch("http://localhost:5000/api/usuarios/seguir", {
+    const response = await fetch(`http://${apiURL}/api/usuarios/seguir`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -74,7 +76,7 @@ const PerfilModal = ({ usuario, onClose }) => {
   };
 
   const handleCancelarSolicitud = async () => {
-    const response = await fetch("http://localhost:5000/api/usuarios/cancelar_solicitud", {
+    const response = await fetch(`http://${apiURL}/api/usuarios/cancelar_solicitud`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -94,7 +96,7 @@ const PerfilModal = ({ usuario, onClose }) => {
   };
 
   const handleDejarDeSeguir = async () => {
-    const response = await fetch("http://localhost:5000/api/usuarios/dejar_seguir", {
+    const response = await fetch(`http://${apiURL}/api/usuarios/dejar_seguir`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -115,139 +117,138 @@ const PerfilModal = ({ usuario, onClose }) => {
   if (!usuario) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header del Modal */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <img
-                src={usuario.foto || "/placeholder.svg?height=80&width=80"}
-                alt={`${usuario.nombre} ${usuario.apellidos}`}
-                className="w-16 h-16 rounded-full object-cover border-2 border-blue-200"
-                onError={(e) => {
-                  e.target.src = "/placeholder.svg?height=80&width=80"
-                }}
-              />
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {usuario.nombre} {usuario.apellidos}
-                </h2>
-                <p className="text-gray-600">{usuario.gmail}</p>
-                <div className="flex items-center space-x-4 mt-2">
-                  <span className="text-sm text-blue-600 font-medium">Nivel {usuario.nivel || 1}</span>
-                  <span className="text-sm text-gray-500">{usuario.etapas_completadas || 0} etapas completadas</span>
-                </div>
-                <div className="flex items-center space-x-4 mt-1">
-                  <span className="text-sm text-gray-600">
-                    <strong>{usuario.seguidores?.length || 0}</strong> seguidores
-                  </span>
-                  <span className="text-sm text-gray-600">
-                    <strong>{usuario.siguiendo?.length || 0}</strong> seguidos
-                  </span>
-                </div>
+  <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div className="bg-white rounded-lg shadow-xl max-w-full w-full max-h-[90vh] overflow-y-auto">
+      {/* Header del Modal */}
+      <div className="p-6 border-b border-gray-200">
+        <div className="flex flex-col md:flex-row items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <img
+              src={usuario.foto || "/placeholder.svg?height=80&width=80"}
+              alt={`${usuario.nombre} ${usuario.apellidos}`}
+              className="w-16 h-16 rounded-full object-cover border-2 border-blue-200"
+              onError={(e) => {
+                e.target.src = "/placeholder.svg?height=80&width=80";
+              }}
+            />
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                {usuario.nombre} {usuario.apellidos}
+              </h2>
+              <p className="text-gray-600">{usuario.gmail}</p>
+              <div className="flex items-center space-x-4 mt-2">
+                <span className="text-sm text-blue-600 font-medium">Nivel {usuario.nivel || 1}</span>
+                <span className="text-sm text-gray-500">{usuario.etapas_completadas || 0} etapas completadas</span>
+              </div>
+              <div className="flex items-center space-x-4 mt-1">
+                <span className="text-sm text-gray-600">
+                  <strong>{usuario.seguidores?.length || 0}</strong> seguidores
+                </span>
+                <span className="text-sm text-gray-600">
+                  <strong>{usuario.siguiendo?.length || 0}</strong> seguidos
+                </span>
               </div>
             </div>
+          </div>
 
-            <div className="flex items-center space-x-2">
-              {/* Botón dinámico de seguir */}
-              {estadoRelacion === "siguiendo" && (
-                <button
-                  onClick={handleDejarDeSeguir}
-                  className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
-                >
-                  Siguiendo
-                </button>
-              )}
-
-              {estadoRelacion === "pendiente" && (
-                <button
-                  onClick={handleCancelarSolicitud}
-                  className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-colors"
-                >
-                  Solicitud enviada
-                </button>
-              )}
-
-              {estadoRelacion === "ninguna" && (
-                <button
-                  onClick={handleEnviarSolicitud}
-                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-                >
-                  Seguir
-                </button>
-              )}
-
+          <div className="flex items-center space-x-2 mt-4 md:mt-0">
+            {/* Botón dinámico de seguir */}
+            {estadoRelacion === "siguiendo" && (
               <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                onClick={handleDejarDeSeguir}
+                className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
               >
-                <CloseIcon className="w-6 h-6" />
+                Siguiendo
               </button>
-            </div>
+            )}
+
+            {estadoRelacion === "pendiente" && (
+              <button
+                onClick={handleCancelarSolicitud}
+                className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-colors"
+              >
+                Solicitud enviada
+              </button>
+            )}
+
+            {estadoRelacion === "ninguna" && (
+              <button
+                onClick={handleEnviarSolicitud}
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Seguir
+              </button>
+            )}
+
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <CloseIcon className="w-6 h-6" />
+            </button>
           </div>
-        </div>
-
-
-        {/* Estadísticas del Usuario */}
-        <div className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{usuario.etapas_completadas || 0}</div>
-              <div className="text-sm text-gray-600">Etapas</div>
-            </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">{Math.round(usuario.distancia_recorrida || 0)} km</div>
-              <div className="text-sm text-gray-600">Recorridos</div>
-            </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">{usuario.caminos_iniciados || 0}</div>
-              <div className="text-sm text-gray-600">Caminos</div>
-            </div>
-            <div className="text-center p-4 bg-yellow-50 rounded-lg">
-              <div className="text-2xl font-bold text-yellow-600">{usuario.fotos_subidas || 0}</div>
-              <div className="text-sm text-gray-600">Fotos</div>
-            </div>
-          </div>
-
-          {/* Últimas Etapas del Usuario */}
-          {usuario.ultimas_etapas && usuario.ultimas_etapas.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Últimas Etapas Completadas</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {usuario.ultimas_etapas.slice(0, 4).map((etapa, index) => (
-                  <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex items-start space-x-3">
-                      {etapa.foto ? (
-                        <img
-                          src={etapa.foto || "/placeholder.svg"}
-                          alt={etapa.nombre}
-                          className="w-12 h-12 object-cover rounded-lg"
-                          onError={(e) => {
-                            e.target.src = "/placeholder.svg?height=48&width=48"
-                          }}
-                        />
-                      ) : (
-                        <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                          <RouteIcon className="w-6 h-6 text-gray-400" />
-                        </div>
-                      )}
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 text-sm">{etapa.nombre}</h4>
-                        <p className="text-xs text-gray-600">{etapa.caminoNombre}</p>
-                        <p className="text-xs text-gray-500">{new Date(etapa.fecha).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Estadísticas del Usuario */}
+      <div className="p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center p-4 bg-blue-50 rounded-lg">
+            <div className="text-2xl font-bold text-blue-600">{usuario.etapas_completadas || 0}</div>
+            <div className="text-sm text-gray-600">Etapas</div>
+          </div>
+          <div className="text-center p-4 bg-green-50 rounded-lg">
+            <div className="text-2xl font-bold text-green-600">{Math.round(usuario.distancia_recorrida || 0)} km</div>
+            <div className="text-sm text-gray-600">Recorridos</div>
+          </div>
+          <div className="text-center p-4 bg-purple-50 rounded-lg">
+            <div className="text-2xl font-bold text-purple-600">{usuario.caminos_iniciados || 0}</div>
+            <div className="text-sm text-gray-600">Caminos</div>
+          </div>
+          <div className="text-center p-4 bg-yellow-50 rounded-lg">
+            <div className="text-2xl font-bold text-yellow-600">{usuario.fotos_subidas || 0}</div>
+            <div className="text-sm text-gray-600">Fotos</div>
+          </div>
+        </div>
+
+        {/* Últimas Etapas del Usuario */}
+        {usuario.ultimas_etapas && usuario.ultimas_etapas.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Últimas Etapas Completadas</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {usuario.ultimas_etapas.slice(0, 4).map((etapa, index) => (
+                <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-start space-x-3">
+                    {etapa.foto ? (
+                      <img
+                        src={etapa.foto || "/placeholder.svg"}
+                        alt={etapa.nombre}
+                        className="w-12 h-12 object-cover rounded-lg"
+                        onError={(e) => {
+                          e.target.src = "/placeholder.svg?height=48&width=48";
+                        }}
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                        <RouteIcon className="w-6 h-6 text-gray-400" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 text-sm">{etapa.nombre}</h4>
+                      <p className="text-xs text-gray-600">{etapa.caminoNombre}</p>
+                      <p className="text-xs text-gray-500">{new Date(etapa.fecha).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
-  )
+  </div>
+);
 }
 
 const TrophyIcon = ({ className = "w-5 h-5" }) => (
@@ -838,7 +839,7 @@ function PerfilUsuario() {
         }
 
         // Cargar datos del usuario
-        const usuarioResponse = await fetch(`http://localhost:5000/api/usuarios/get_usuario?usuario_id=${usuarioId}`)
+        const usuarioResponse = await fetch(`http://${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioId}`)
         if (!usuarioResponse.ok) throw new Error("Error al cargar datos del usuario")
 
         const usuario = await usuarioResponse.json()
@@ -849,7 +850,7 @@ function PerfilUsuario() {
         if (usuario.caminos && Array.isArray(usuario.caminos)) {
           for (const camino of usuario.caminos) {
             const Caminoresponse = await fetch(
-              `http://localhost:5000/api/caminos/get_camino?camino_id=${camino.id_camino}`,
+              `http://${apiURL}/api/caminos/get_camino?camino_id=${camino.id_camino}`,
             )
             if (!Caminoresponse.ok) {
               console.warn(`No se pudo cargar el camino ${camino.id_camino}`)
@@ -901,7 +902,7 @@ function PerfilUsuario() {
         const seguidoresData = []
         for (const seguidorId of userData.seguidores) {
           const id = seguidorId.$oid || seguidorId
-          const response = await fetch(`http://localhost:5000/api/usuarios/get_usuario?usuario_id=${id}`)
+          const response = await fetch(`http://${apiURL}/api/usuarios/get_usuario?usuario_id=${id}`)
           if (response.ok) {
             const seguidorData = await response.json()
             // Calcular estadísticas
@@ -945,7 +946,7 @@ function PerfilUsuario() {
         const seguidosData = []
         for (const seguidoId of userData.siguiendo) {
           const id = seguidoId.$oid || seguidoId
-          const response = await fetch(`http://localhost:5000/api/usuarios/get_usuario?usuario_id=${id}`)
+          const response = await fetch(`http://${apiURL}/api/usuarios/get_usuario?usuario_id=${id}`)
           if (response.ok) {
             const seguidoData = await response.json()
             // Calcular estadísticas
@@ -994,7 +995,7 @@ function PerfilUsuario() {
       try {
         // Cargar datos completos del usuario si es necesario
         const usuarioId = usuario._id?.$oid || usuario._id
-        const response = await fetch(`http://localhost:5000/api/usuarios/get_usuario?usuario_id=${usuarioId}`)
+        const response = await fetch(`http://${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioId}`)
         if (response.ok) {
           const usuarioCompleto = await response.json()
 
@@ -1004,7 +1005,7 @@ function PerfilUsuario() {
             for (const camino of usuarioCompleto.caminos) {
               try {
                 const caminoId = camino.id_camino.$oid || camino.id_camino
-                const caminoResponse = await fetch(`http://localhost:5000/api/caminos/get_camino?camino_id=${caminoId}`)
+                const caminoResponse = await fetch(`http://${apiURL}/api/caminos/get_camino?camino_id=${caminoId}`)
                 if (caminoResponse.ok) {
                   const caminoData = await caminoResponse.json()
                   if (camino.etapas_completadas && Array.isArray(camino.etapas_completadas)) {

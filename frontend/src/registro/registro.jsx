@@ -4,6 +4,8 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 
+const apiURL = process.env.REACT_APP_API_URL
+
 // Iconos SVG (reutilizando algunos del login)
 const EmailIcon = ({ className = "w-5 h-5" }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -160,7 +162,7 @@ function Register({ onSwitchToLogin }) {
       formDataToSend.append("publico", formData.publico)
 
       // Aquí harías la llamada a tu API
-      const response = await fetch("http://localhost:5000/api/usuarios/crear_usuario", {
+      const response = await fetch(`http://${apiURL}/api/usuarios/crear_usuario`, {
         method: "POST",
         body: formDataToSend,
       })
