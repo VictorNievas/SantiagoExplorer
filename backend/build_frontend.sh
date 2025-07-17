@@ -13,6 +13,6 @@ echo "🧹 Limpiando estáticos antiguos..."
 rm -rf ../backend/static
 
 echo "🚚 Moviendo build de React a backend/static..."
-mv build ../backend/static
+mv frontend/build backend/static
 
 echo "✅ Frontend integrado con Flask correctamente."
