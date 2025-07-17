@@ -10,7 +10,7 @@ from routes.usuarios import usuarios
 from routes.compras import compras
 import requests
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static", static_url_path="/")
 
 # CORS: permitir todas las rutas y orígenes con soporte para credenciales
 #CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
