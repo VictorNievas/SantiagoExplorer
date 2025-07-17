@@ -42,15 +42,22 @@ app.register_blueprint(caminos, url_prefix='/api/caminos')
 app.register_blueprint(usuarios, url_prefix='/api/usuarios')
 app.register_blueprint(compras, url_prefix='/api/compras')
 
-@app.route('/', defaults={'path': ''})
+@app.route('/')
+def index():
+    return send_from_directory(app.static_folder, 'index.html')
+
 @app.route('/<path:path>')
-def serve_react(path):
-    static_file = os.path.join(app.static_folder, path)
-    if path != "" and os.path.exists(static_file):
+def serve_static(path):
+    if os.path.exists(os.path.join(app.static_folder, path)):
         return send_from_directory(app.static_folder, path)
     else:
-        # Aquí siempre servimos index.html para que React gestione la ruta en frontend
+        # 🔁 Si no existe el archivo, sirve index.html para que React gestione la ruta
         return send_from_directory(app.static_folder, 'index.html')
+
+@app.errorhandler(404)
+def not_found(e):
+    return send_from_directory(app.static_folder, 'index.html')
+
 
 
 
