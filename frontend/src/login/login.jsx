@@ -102,7 +102,7 @@ function Login({ onSwitchToRegister }) {
 
     try {
       // Aquí harías la llamada a tu API
-      const response = await fetch(`http://${apiURL}/api/usuarios/login`, {
+      const response = await fetch(${apiURL}/api/usuarios/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

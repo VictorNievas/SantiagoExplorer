@@ -170,7 +170,7 @@ function Configuracion() {
           throw new Error("No se encontró el usuario")
         }
 
-        const response = await fetch(`http://${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioId}`)
+        const response = await fetch(`${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioId}`)
         if (!response.ok) throw new Error("Error al cargar datos del usuario")
 
         const usuario = await response.json()
@@ -264,7 +264,7 @@ function Configuracion() {
         formData.append("foto", perfilForm.foto)
       }
 
-      const response = await fetch(`http://${apiURL}/api/usuarios/actualizar_perfil`, {
+      const response = await fetch(`${apiURL}/api/usuarios/actualizar_perfil`, {
         method: "PUT",
         body: formData,
       })
@@ -304,7 +304,7 @@ function Configuracion() {
 
     try {
       const usuarioId = localStorage.getItem("usuario")
-      const response = await fetch(`http://${apiURL}/api/usuarios/cambiar_password`, {
+      const response = await fetch(`${apiURL}/api/usuarios/cambiar_password`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

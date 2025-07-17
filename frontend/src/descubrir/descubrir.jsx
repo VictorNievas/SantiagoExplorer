@@ -141,13 +141,13 @@ const PerfilModal = ({ usuario, onClose }) => {
     const cargarUsuarioActual = async () => {
       if (usuarioActual) {
         try {
-          const response = await fetch(`http://${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioActual}`)
+          const response = await fetch(`${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioActual}`)
           if (response.ok) {
             const userData = await response.json()
             setUsuarioActualData(userData)
           }
           // Verificar estado de relación
-          const responseRelacion = await fetch(`http://${apiURL}/api/usuarios/relacion?usuario_id_e=${usuarioActual}&usuario_id_r=${usuario._id}`)
+          const responseRelacion = await fetch(`${apiURL}/api/usuarios/relacion?usuario_id_e=${usuarioActual}&usuario_id_r=${usuario._id}`)
           if (responseRelacion.ok) {
             const relacionData = await responseRelacion.json()
             console.log("Estado de relación:", relacionData)
@@ -166,7 +166,7 @@ const PerfilModal = ({ usuario, onClose }) => {
   }, [usuarioActual])
 
   const handleEnviarSolicitud = async () => {
-    const response = await fetch(`http://${apiURL}/api/usuarios/seguir`, {
+    const response = await fetch(`${apiURL}/api/usuarios/seguir`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -192,7 +192,7 @@ const PerfilModal = ({ usuario, onClose }) => {
   };
 
   const handleCancelarSolicitud = async () => {
-    const response = await fetch(`http://${apiURL}/api/usuarios/cancelar_solicitud`, {
+    const response = await fetch(`${apiURL}/api/usuarios/cancelar_solicitud`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -212,7 +212,7 @@ const PerfilModal = ({ usuario, onClose }) => {
   };
 
   const handleDejarDeSeguir = async () => {
-    const response = await fetch(`http://${apiURL}/api/usuarios/dejar_seguir`, {
+    const response = await fetch(`${apiURL}/api/usuarios/dejar_seguir`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -390,7 +390,7 @@ const EtapaPost = ({ etapa, onUsuarioClick }) => {
     const cargarUsuarioActual = async () => {
       if (usuarioActual) {
         try {
-          const response = await fetch(`http://${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioActual}`)
+          const response = await fetch(`${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioActual}`)
           if (response.ok) {
             const userData = await response.json()
             setUsuarioActualData(userData)
@@ -414,7 +414,7 @@ const EtapaPost = ({ etapa, onUsuarioClick }) => {
       for (const userId of usuariosUnicos) {
         if (!usuariosComentarios[userId]) {
           try {
-            const response = await fetch(`http://${apiURL}/api/usuarios/get_usuario?usuario_id=${userId}`)
+            const response = await fetch(`${apiURL}/api/usuarios/get_usuario?usuario_id=${userId}`)
             if (response.ok) {
               const userData = await response.json()
               usuariosData[userId] = userData
@@ -460,7 +460,7 @@ const handleLike = async () => {
   setLoadingLike(true)
 
   try {
-    const response = await fetch(`http://${apiURL}/api/caminos/dar_like`, {
+    const response = await fetch(`${apiURL}/api/caminos/dar_like`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -514,7 +514,7 @@ const handleLike = async () => {
     setLoadingComment(true)
 
     try {
-      const response = await fetch(`http://${apiURL}/api/caminos/comentar_etapa`, {
+      const response = await fetch(`${apiURL}/api/caminos/comentar_etapa`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1033,7 +1033,7 @@ function DescubrirSocial() {
         setLoading(true)
 
         // Primero obtenemos todos los usuarios
-        const usuariosResponse = await fetch(`http://${apiURL}/api/usuarios/get_usuarios`)
+        const usuariosResponse = await fetch(`${apiURL}/api/usuarios/get_usuarios`)
         if (!usuariosResponse.ok) {
           throw new Error("Error al cargar usuarios")
         }
@@ -1066,7 +1066,7 @@ function DescubrirSocial() {
                   // Obtener datos del camino usando el ObjectId
                   const caminoId = camino.id_camino.$oid || camino.id_camino
                   const caminoResponse = await fetch(
-                    `http://${apiURL}/api/caminos/get_camino?camino_id=${caminoId}`,
+                    `${apiURL}/api/caminos/get_camino?camino_id=${caminoId}`,
                   )
                   if (!caminoResponse.ok) continue
 
@@ -1155,7 +1155,7 @@ function DescubrirSocial() {
   useEffect(() => {
     const cargarTodosUsuarios = async () => {
       try {
-        const response = await fetch(`http://${apiURL}/api/usuarios/get_usuarios`)
+        const response = await fetch(`${apiURL}/api/usuarios/get_usuarios`)
         if (response.ok) {
           const usuarios = await response.json()
           setTodosLosUsuarios(usuarios)
@@ -1170,7 +1170,7 @@ function DescubrirSocial() {
   const handleUsuarioClick = async (usuarioId) => {
     try {
       // Cargar datos completos del usuario
-      const usuarioResponse = await fetch(`http://${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioId}`)
+      const usuarioResponse = await fetch(`${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioId}`)
       if (!usuarioResponse.ok) {
         throw new Error("Error al cargar datos del usuario")
       }
@@ -1194,7 +1194,7 @@ function DescubrirSocial() {
         for (const camino of usuarioData.caminos) {
           try {
             const caminoId = camino.id_camino.$oid || camino.id_camino
-            const caminoResponse = await fetch(`http://${apiURL}/api/caminos/get_camino?camino_id=${caminoId}`)
+            const caminoResponse = await fetch(`${apiURL}/api/caminos/get_camino?camino_id=${caminoId}`)
             if (caminoResponse.ok) {
               const caminoData = await caminoResponse.json()
               if (camino.etapas_completadas && Array.isArray(camino.etapas_completadas)) {

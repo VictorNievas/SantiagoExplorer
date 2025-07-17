@@ -92,11 +92,11 @@ function Inicio() {
     }
 
     Promise.all([
-      fetch(`http://${apiURL}/api/caminos/get_caminos`).then((res) => {
+      fetch(`${apiURL}/api/caminos/get_caminos`).then((res) => {
         if (!res.ok) throw new Error("Error al cargar caminos")
         return res.json()
       }),
-      fetch(`http://${apiURL}/api/caminos/caminos_usuario?usuario_id=${usuario}`).then((res) => {
+      fetch(`${apiURL}/api/caminos/caminos_usuario?usuario_id=${usuario}`).then((res) => {
         if (!res.ok) throw new Error("Error al cargar progreso del usuario")
         return res.json()
       }),
@@ -173,7 +173,7 @@ function Inicio() {
         formData.append("fecha", new Date().toISOString())
 
         try {
-          const response = await fetch(`http://${apiURL}/api/caminos/subir_imagen`, {
+          const response = await fetch(`${apiURL}/api/caminos/subir_imagen`, {
             method: "POST",
             body: formData,
           })
@@ -196,7 +196,7 @@ function Inicio() {
             alert("¡Etapa completada exitosamente!")
             //Anadir un nivel al usuario y anadir los kilometros recorridos
             try{
-              const response = await fetch(`http://${apiURL}/api/caminos/get_camino?camino_id=${caminoId}`, {
+              const response = await fetch(`${apiURL}/api/caminos/get_camino?camino_id=${caminoId}`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' }
               });
@@ -206,7 +206,7 @@ function Inicio() {
                 const distanciaRecorrida = camino.etapas[etapaId-1].distancia_km || 0
                 const usuarioId = localStorage.getItem('usuario')
 
-                await fetch(`http://${apiURL}/api/usuarios/actualizar_distancia`, {
+                await fetch(`${apiURL}/api/usuarios/actualizar_distancia`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -215,7 +215,7 @@ function Inicio() {
                   })
                 })
 
-                await fetch(`http://${apiURL}/api/usuarios/actualizar_nivel`, {
+                await fetch(`${apiURL}/api/usuarios/actualizar_nivel`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -232,7 +232,7 @@ function Inicio() {
 
                 const totalEtapas = camino.etapas?.length || 0
                 if (completedCount === totalEtapas) {
-                  await fetch(`http://${apiURL}/api/usuarios/actualizar_nivel`, {
+                  await fetch(`${apiURL}/api/usuarios/actualizar_nivel`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -241,7 +241,7 @@ function Inicio() {
                     })
                   })
 
-                  await fetch(`http://${apiURL}/api/usuarios/anadir_logro`, {
+                  await fetch(`${apiURL}/api/usuarios/anadir_logro`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -285,7 +285,7 @@ function Inicio() {
       if (window.confirm("¿Estás seguro de que quieres desmarcar esta etapa como completada?")) {
         try {
           // Aquí podrías hacer una llamada al backend para eliminar el progreso
-          // const response = await fetch(`http://${apiURL}/api/caminos/eliminar_progreso`, {
+          // const response = await fetch(${apiURL}/api/caminos/eliminar_progreso`, {
           //   method: 'DELETE',
           //   headers: { 'Content-Type': 'application/json' },
           //   body: JSON.stringify({

@@ -162,7 +162,7 @@ function Register({ onSwitchToLogin }) {
       formDataToSend.append("publico", formData.publico)
 
       // Aquí harías la llamada a tu API
-      const response = await fetch(`http://${apiURL}/api/usuarios/crear_usuario`, {
+      const response = await fetch(`${apiURL}/api/usuarios/crear_usuario`, {
         method: "POST",
         body: formDataToSend,
       })

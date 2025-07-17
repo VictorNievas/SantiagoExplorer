@@ -26,13 +26,13 @@ const PerfilModal = ({ usuario, onClose }) => {
     const cargarUsuarioActual = async () => {
       if (usuarioActual) {
         try {
-          const response = await fetch(`http://${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioActual}`)
+          const response = await fetch(`${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioActual}`)
           if (response.ok) {
             const userData = await response.json()
             setUsuarioActualData(userData)
           }
           // Verificar estado de relación
-          const responseRelacion = await fetch(`http://${apiURL}/api/usuarios/relacion?usuario_id_e=${usuarioActual}&usuario_id_r=${usuario._id}`)
+          const responseRelacion = await fetch(`${apiURL}/api/usuarios/relacion?usuario_id_e=${usuarioActual}&usuario_id_r=${usuario._id}`)
           if (responseRelacion.ok) {
             const relacionData = await responseRelacion.json()
             console.log("Estado de relación:", relacionData)
@@ -51,7 +51,7 @@ const PerfilModal = ({ usuario, onClose }) => {
   }, [usuarioActual])
 
   const handleEnviarSolicitud = async () => {
-    const response = await fetch(`http://${apiURL}/api/usuarios/seguir`, {
+    const response = await fetch(`${apiURL}/api/usuarios/seguir`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -76,7 +76,7 @@ const PerfilModal = ({ usuario, onClose }) => {
   };
 
   const handleCancelarSolicitud = async () => {
-    const response = await fetch(`http://${apiURL}/api/usuarios/cancelar_solicitud`, {
+    const response = await fetch(`${apiURL}/api/usuarios/cancelar_solicitud`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -96,7 +96,7 @@ const PerfilModal = ({ usuario, onClose }) => {
   };
 
   const handleDejarDeSeguir = async () => {
-    const response = await fetch(`http://${apiURL}/api/usuarios/dejar_seguir`, {
+    const response = await fetch(`${apiURL}/api/usuarios/dejar_seguir`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -839,7 +839,7 @@ function PerfilUsuario() {
         }
 
         // Cargar datos del usuario
-        const usuarioResponse = await fetch(`http://${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioId}`)
+        const usuarioResponse = await fetch(`${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioId}`)
         if (!usuarioResponse.ok) throw new Error("Error al cargar datos del usuario")
 
         const usuario = await usuarioResponse.json()
@@ -850,7 +850,7 @@ function PerfilUsuario() {
         if (usuario.caminos && Array.isArray(usuario.caminos)) {
           for (const camino of usuario.caminos) {
             const Caminoresponse = await fetch(
-              `http://${apiURL}/api/caminos/get_camino?camino_id=${camino.id_camino}`,
+              `${apiURL}/api/caminos/get_camino?camino_id=${camino.id_camino}`,
             )
             if (!Caminoresponse.ok) {
               console.warn(`No se pudo cargar el camino ${camino.id_camino}`)
@@ -902,7 +902,7 @@ function PerfilUsuario() {
         const seguidoresData = []
         for (const seguidorId of userData.seguidores) {
           const id = seguidorId.$oid || seguidorId
-          const response = await fetch(`http://${apiURL}/api/usuarios/get_usuario?usuario_id=${id}`)
+          const response = await fetch(`${apiURL}/api/usuarios/get_usuario?usuario_id=${id}`)
           if (response.ok) {
             const seguidorData = await response.json()
             // Calcular estadísticas
@@ -946,7 +946,7 @@ function PerfilUsuario() {
         const seguidosData = []
         for (const seguidoId of userData.siguiendo) {
           const id = seguidoId.$oid || seguidoId
-          const response = await fetch(`http://${apiURL}/api/usuarios/get_usuario?usuario_id=${id}`)
+          const response = await fetch(`${apiURL}/api/usuarios/get_usuario?usuario_id=${id}`)
           if (response.ok) {
             const seguidoData = await response.json()
             // Calcular estadísticas
@@ -995,7 +995,7 @@ function PerfilUsuario() {
       try {
         // Cargar datos completos del usuario si es necesario
         const usuarioId = usuario._id?.$oid || usuario._id
-        const response = await fetch(`http://${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioId}`)
+        const response = await fetch(`${apiURL}/api/usuarios/get_usuario?usuario_id=${usuarioId}`)
         if (response.ok) {
           const usuarioCompleto = await response.json()
 
@@ -1005,7 +1005,7 @@ function PerfilUsuario() {
             for (const camino of usuarioCompleto.caminos) {
               try {
                 const caminoId = camino.id_camino.$oid || camino.id_camino
-                const caminoResponse = await fetch(`http://${apiURL}/api/caminos/get_camino?camino_id=${caminoId}`)
+                const caminoResponse = await fetch(`${apiURL}/api/caminos/get_camino?camino_id=${caminoId}`)
                 if (caminoResponse.ok) {
                   const caminoData = await caminoResponse.json()
                   if (camino.etapas_completadas && Array.isArray(camino.etapas_completadas)) {

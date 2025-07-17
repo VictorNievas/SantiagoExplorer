@@ -186,7 +186,7 @@ export default function Navbar() {
 
     setLoadingNotificaciones(true)
     try {
-      const response = await fetch(`http://${apiURL}/api/usuarios/get_notificaciones?usuario_id=${usuarioId}`)
+      const response = await fetch(`${apiURL}/api/usuarios/get_notificaciones?usuario_id=${usuarioId}`)
       if (response.ok) {
         const data = await response.json()
         setNotificaciones(data)
@@ -204,7 +204,7 @@ export default function Navbar() {
 
     setLoadingSolicitudes(true)
     try {
-      const response = await fetch(`http://${apiURL}/api/usuarios/get_solicitudes?usuario_id=${usuarioId}`)
+      const response = await fetch(`${apiURL}/api/usuarios/get_solicitudes?usuario_id=${usuarioId}`)
       if (response.ok) {
         const data = await response.json()
         setSolicitudes(data)
@@ -221,7 +221,7 @@ export default function Navbar() {
     if (!usuarioId) return
 
     try {
-      await fetch(`http://${apiURL}/api/usuarios/marcar_notificaciones_leidas`, {
+      await fetch(`${apiURL}/api/usuarios/marcar_notificaciones_leidas`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -241,7 +241,7 @@ export default function Navbar() {
 
     try {
       // Simular endpoint - ajustar según tu API
-      const response = await fetch(`http://${apiURL}/api/usuarios/gestionar_solicitud`, {
+      const response = await fetch(`${apiURL}/api/usuarios/gestionar_solicitud`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -273,7 +273,7 @@ export default function Navbar() {
 
     try {
       // Simular endpoint - ajustar según tu API
-      const response = await fetch(`http://${apiURL}/api/usuarios/gestionar_solicitud`, {
+      const response = await fetch(`${apiURL}/api/usuarios/gestionar_solicitud`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
