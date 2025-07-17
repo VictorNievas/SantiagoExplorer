@@ -42,17 +42,13 @@ app.register_blueprint(caminos, url_prefix='/api/caminos')
 app.register_blueprint(usuarios, url_prefix='/api/usuarios')
 app.register_blueprint(compras, url_prefix='/api/compras')
 
-@app.route('/')
-def serve_react():
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_react(path):
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
     return send_from_directory(app.static_folder, 'index.html')
 
-@app.route('/<path:path>')
-def serve_static(path):
-    file_path = os.path.join(app.static_folder, path)
-    if os.path.exists(file_path):
-        return send_from_directory(app.static_folder, path)
-    else:
-        return send_from_directory(app.static_folder, 'index.html')
 
 if __name__ == "__main__":
     # Ejecutar Flask con debug para mejor depuración
