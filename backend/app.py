@@ -10,7 +10,7 @@ from routes.usuarios import usuarios
 from routes.compras import compras
 import requests
 
-app = Flask(__name__, static_folder="static", static_url_path="/")
+app = Flask(__name__, static_folder="static")
 
 # CORS: permitir todas las rutas y orígenes con soporte para credenciales
 #CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
@@ -45,9 +45,13 @@ app.register_blueprint(compras, url_prefix='/api/compras')
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_react(path):
-    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+    static_file = os.path.join(app.static_folder, path)
+    if path != "" and os.path.exists(static_file):
         return send_from_directory(app.static_folder, path)
-    return send_from_directory(app.static_folder, 'index.html')
+    else:
+        # Aquí siempre servimos index.html para que React gestione la ruta en frontend
+        return send_from_directory(app.static_folder, 'index.html')
+
 
 
 if __name__ == "__main__":
