@@ -4,37 +4,8 @@ import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { AdMob } from '@capacitor-community/admob'
 
+
 const apiURL = process.env.REACT_APP_API_URL
-
-
-const BannerAd = () => {
-  const [bannerVisible, setBannerVisible] = useState(false);
-
-  useEffect(() => {
-    async function showBanner() {
-      await AdMob.initialize({
-        requestTrackingAuthorization: true,
-        initializeForTesting: true,
-      });
-
-      await AdMob.showBanner({
-        adId: 'ca-app-pub-3940256099942544/6300978111', // ID de prueba
-        adSize: 'ADAPTIVE_BANNER',
-        position: 'TOP_CENTER',
-        isTesting: true,
-      });
-      setBannerVisible(true);
-    }
-    showBanner();
-
-    return () => {
-      AdMob.hideBanner();
-      setBannerVisible(false);
-    };
-  }, []);
-
-  return null; // No es necesario renderizar nada
-};
 
 // Iconos SVG
 const HomeIcon = ({ className = "w-5 h-5" }) => (
@@ -383,9 +354,6 @@ export default function Navbar() {
 
   return (
   <>
-  <div className="banner-container mb-16"> {/* Ajusta el margen según la altura del banner */}
-    <BannerAd />
-  </div>
   <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex justify-between items-center h-16">

@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react"
 import Navbar from "../navbar/navbar.jsx"
+import CheckoutButtonStripe from "../stripe.jsx"
+import { Capacitor } from "@capacitor/core"
+import CheckoutButton from "../buyGooglePlay.jsx"
 
+const platform = Capacitor.getPlatform() // 'web', 'ios', 'android'
 const apiURL = process.env.REACT_APP_API_URL
 
 // Iconos SVG
@@ -363,6 +367,7 @@ function Configuracion() {
   const tabs = [
     { id: "perfil", name: "Perfil", icon: UserIcon },
     { id: "seguridad", name: "Seguridad", icon: LockIcon },
+    { id: "suscripciones", name: "Suscripciones", icon: BellIcon },
   ]
 
   return (
@@ -683,6 +688,15 @@ function Configuracion() {
                         </div>
                       </div>
                     </div>
+                  </div>
+                </div>
+              )}
+              {/* Tab de Suscripciones */}
+              {activeTab === "suscripciones" && (
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Suscripciones</h2>
+                  <div className="space-y-6">
+                    {platform === 'web' ? <CheckoutButtonStripe /> : <CheckoutButton />}
                   </div>
                 </div>
               )}

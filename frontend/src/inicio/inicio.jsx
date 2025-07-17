@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Navbar from "../navbar/navbar.jsx"
+import CheckoutButtonStripe from "../stripe.jsx";
 
 const apiURL = process.env.REACT_APP_API_URL
 
@@ -332,7 +333,7 @@ function Inicio() {
       </div>
     )
   }
-
+//<CheckoutButtonStripe productName="Camino de Santiago" price={1.95} />
   return (
     <div>
       <Navbar />

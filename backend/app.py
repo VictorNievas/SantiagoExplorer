@@ -1,12 +1,13 @@
 import os
 import certifi
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_session import Session
 from extensions import mongo
 from routes.caminos import caminos
 from routes.usuarios import usuarios
+from routes.compras import compras
 import requests
 
 app = Flask(__name__)
@@ -39,6 +40,19 @@ os.environ['REQUESTS_CA_BUNDLE'] = certifi.where()
 # Registro de Blueprints
 app.register_blueprint(caminos, url_prefix='/api/caminos')
 app.register_blueprint(usuarios, url_prefix='/api/usuarios')
+app.register_blueprint(compras, url_prefix='/api/compras')
+
+@app.route('/')
+def serve_react():
+    return send_from_directory(app.static_folder, 'index.html')
+
+@app.route('/<path:path>')
+def serve_static(path):
+    file_path = os.path.join(app.static_folder, path)
+    if os.path.exists(file_path):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
 
 if __name__ == "__main__":
     # Ejecutar Flask con debug para mejor depuración
