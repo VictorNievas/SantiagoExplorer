@@ -475,6 +475,7 @@ function PerfilUsuario() {
   const [loadingSeguidores, setLoadingSeguidores] = useState(false)
   const [loadingSeguidos, setLoadingSeguidos] = useState(false)
   const [usuarioSeleccionadoModal, setUsuarioSeleccionadoModal] = useState(null)
+  const [premium, setPremium] = useState(false)
 
   // Función para generar TODOS los logros disponibles
   const generarTodosLosLogros = (userData) => {
@@ -489,6 +490,7 @@ function PerfilUsuario() {
     const distanciaTotal = userData.distancia_recorrida || 0
     const seguidores = userData.seguidores?.length || 0
     const siguiendo = userData.siguiendo?.length || 0
+    const premium = userData.premium || false
 
     // Calcular días activos (simulado - podrías calcularlo real con fechas)
     const diasActivos = Math.floor(totalEtapas * 1.5) // Simulación
@@ -827,6 +829,18 @@ function PerfilUsuario() {
         porcentaje: siguiendo >= 100 ? 100 : (siguiendo / 100) * 100,
         rareza: "epico",
       },
+      {
+        id: "premium_usuario",
+        categoria: "Suscripción",
+        nombre: "🌟 Usuario Premium 🌟",
+        descripcion: "¡Felicidades! Has activado la suscripción Premium.",
+        icono: premium === true ? "💎" : "⏳",  // 💎 si es premium, ⏳ si no
+        color: premium === true ? "bg-indigo-600 text-white" : "bg-gray-300 text-gray-600",
+        obtenido: premium === true,
+        progreso: premium === true ? "1/1" : "0/1",
+        porcentaje: premium === true ? 100 : 0,
+        rareza: "legendario",
+      },
     ]
   }
 
@@ -844,7 +858,6 @@ function PerfilUsuario() {
 
         const usuario = await usuarioResponse.json()
         console.log("Datos del usuario:", usuario)
-
         const etapasRecientes = []
 
         if (usuario.caminos && Array.isArray(usuario.caminos)) {
@@ -877,6 +890,7 @@ function PerfilUsuario() {
         etapasRecientes.sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
 
         setUserData(usuario)
+        setPremium(usuario.premium || false)
         setCaminosData(usuario.caminos)
         setUltimasEtapas(etapasRecientes)
         setLoading(false)
@@ -1133,9 +1147,16 @@ function PerfilUsuario() {
 
               {/* Información del Usuario */}
               <div className="flex-1 text-center md:text-left">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                  {userData?.nombre} {userData?.apellidos}
-                </h1>
+                <div className="mb-2 flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                  <h1 className="text-3xl font-bold text-gray-900 text-center sm:text-left">
+                    {userData?.nombre} {userData?.apellidos}
+                  </h1>
+                  {premium && (
+                    <span className="mt-2 sm:mt-0 mx-auto sm:mx-0 inline-flex items-center gap-1 text-sm bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-semibold">
+                      <span className="text-base">💎</span> Premium
+                    </span>
+                  )}
+                </div>
                 <p className="text-gray-600 mb-4">{userData?.gmail}</p>
 
                 {/* Estadísticas Rápidas */}

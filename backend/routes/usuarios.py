@@ -56,6 +56,7 @@ def crear_usuario():
         "seguidores": [],
         "siguiendo": [],
         "solicitudesSeguimiento": [],
+        "premium": False,
     }
 
     mongo.db.usuarios.insert_one(nuevo_usuario)

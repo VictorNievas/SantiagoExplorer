@@ -22,6 +22,8 @@ cloudinary.config(
     api_secret= os.getenv('Apisecret')
 )
 
+StreetMapKey = os.getenv('StreetMapKey')
+
 @caminos.route('/get_caminos', methods=['GET'])
 def get_caminos():
     try:
@@ -390,5 +392,6 @@ def comentar_etapa():
 
     except InvalidId:
         return jsonify({"error": "ID inválido"}), 400
+
 
 

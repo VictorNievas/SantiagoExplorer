@@ -137,6 +137,7 @@ function Configuracion() {
   const [activeTab, setActiveTab] = useState("perfil")
   const [saving, setSaving] = useState(false)
   const [successMessage, setSuccessMessage] = useState("")
+  const [premium, setPremium] = useState(false)
 
   // Estados para el formulario de perfil
   const [perfilForm, setPerfilForm] = useState({
@@ -185,7 +186,7 @@ function Configuracion() {
           foto: null,
           publico: usuario.publico === "true" || usuario.publico === true,
         })
-
+        setPremium(usuario.premium || false)
         setPhotoPreview(usuario.foto || null)
 
 
@@ -693,12 +694,16 @@ function Configuracion() {
               )}
               {/* Tab de Suscripciones */}
               {activeTab === "suscripciones" && (
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Suscripciones</h2>
+                !premium ? (
                   <div className="space-y-6">
                     {platform === 'web' ? <CheckoutButtonStripe /> : <CheckoutButton />}
                   </div>
-                </div>
+                ) : (
+                  <div className="p-4 bg-green-100 text-green-800 rounded">
+                    <h2 className="text-xl font-bold mb-2">¡Gracias por ser usuario Premium! 💎</h2>
+                    <p>Disfruta de todas las ventajas exclusivas que tienes por ser Premium.</p>
+                  </div>
+                )
               )}
             </div>
           </div>

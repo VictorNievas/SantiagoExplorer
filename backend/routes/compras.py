@@ -44,8 +44,17 @@ def stripe_webhook():
     # Evento de pago exitoso
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
+        email = session.get('customer_email') or session.get('customer_details', {}).get('email')
+        print(f"Pago exitoso para el cliente: {email}")
         # Aquí puedes guardar en base de datos que el usuario pagó
         print(f"Pago confirmado para cliente: {session['customer']} - ID sesión: {session['id']}")
+
+        mongo.db.usuarios.update_one(
+            {"gmail": email},
+            {"$set": {
+                "premium": True,
+            }}
+        )
 
         # Ejemplo: guardar compra en DB
         # guardar_compra_en_db(user_id=session['customer'], session_id=session['id'], status='completed')
