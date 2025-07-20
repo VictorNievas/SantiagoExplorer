@@ -241,7 +241,7 @@ function Register({ onSwitchToLogin }) {
                   <span>Subir Foto</span>
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">Opcional</p>
+              <p className="text-xs text-gray-500 mt-1">Obligatorio</p>
             </div>
 
             {/* Name Fields */}

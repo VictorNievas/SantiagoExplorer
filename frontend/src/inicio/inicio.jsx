@@ -1,8 +1,29 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import React, { useEffect, useState, useRef } from "react"
 import Navbar from "../navbar/navbar.jsx"
 import CheckoutButtonStripe from "../stripe.jsx";
+import html2canvas from "html2canvas";
+import { MapContainer, TileLayer, Marker, Popup, GeoJSON, Polyline  } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import leafletImage from "leaflet-image";
+import L from 'leaflet';
+import ModalPremium from "../modalPremium.jsx";
+
+// Corrección para los iconos por defecto en Leaflet
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+delete L.Icon.Default.prototype._getIconUrl;
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+});
+
+
 
 const apiURL = process.env.REACT_APP_API_URL
 
@@ -74,6 +95,13 @@ function Inicio() {
   const [uploadingPhoto, setUploadingPhoto] = useState({})
   const [expandedInfoId, setExpandedInfoId] = useState(null)
   const [busqueda, setBusqueda] = useState("")
+  const [userLocation, setUserLocation] = useState(null);
+  const [routeData, setRouteData] = useState(null);
+  const [mapReady, setMapReady] = useState(false);
+  const [etapaActual, setEtapaActual] = useState(null); // Estado para la etapa actual
+  const [isModalOpen, setIsModalOpen] = useState(false); // Estado para el modal
+  const [premium, setPremium] = useState(false); // Estado para el premium
+
 
   const toggleEtapaInfo = (id) => {
     setExpandedInfoId((prevId) => (prevId === id ? null : id))
@@ -100,8 +128,13 @@ function Inicio() {
         if (!res.ok) throw new Error("Error al cargar progreso del usuario")
         return res.json()
       }),
+      fetch(`${apiURL}/api/usuarios/get_usuario?usuario_id=${usuario}`).then((res) => {
+        if (!res.ok) throw new Error("Error al cargar progreso del usuario")
+        return res.json()
+      }),
     ])
-      .then(([caminosData, progresoData]) => {
+      .then(([caminosData, progresoData, userData]) => {
+        setPremium(userData.premium || false) // Guardar el estado premium del usuario
         setCaminos(caminosData)
         console.log("Caminos cargados:", caminosData) // Para debug
         const progresoMap = {}
@@ -135,7 +168,61 @@ function Inicio() {
         setError("Error cargando los datos: " + err.message)
         setLoading(false)
       })
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (err) => {
+          console.error("No se pudo obtener ubicación:", err);
+        }
+      );
+      if (isModalOpen) {
+        setTimeout(() => {
+          if (mapRef.current) {
+            mapRef.current.invalidateSize();
+            console.log("✅ Mapa invalidado");
+          }
+        }, 300); // Espera a que el modal esté en el DOM
+      }
   }, [])
+
+  const fetchRoute = async (from, to) => {
+    const res = await fetch("https://api.openrouteservice.org/v2/directions/foot-walking/geojson", {
+      method: "POST",
+      headers: {
+        "Authorization": process.env.REACT_APP_StreetMapKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        coordinates: [[from.lng, from.lat], [to.coordenadas.lng, to.coordenadas.lat]],
+      }),
+    });
+    const data = await res.json();
+    setRouteData(data);
+    console.log("Ruta obtenida:", data); // Para debug
+  };
+
+
+const mapRef = useRef(null);
+const [map, setMap] = React.useState(null);
+
+
+
+  // Definimos las posiciones para la línea de la ruta
+ 
+
+const handleEtapaClick = (etapa) => {
+    setEtapaActual(etapa);
+    console.log("Etapa actual:", etapa); // Para debug
+    if ( userLocation) {
+      fetchRoute(userLocation, etapa);
+    }
+    setIsModalOpen(true);
+  };
 
   const toggleCamino = (caminoId) => {
     setExpandedCaminos((prev) => ({
@@ -144,6 +231,7 @@ function Inicio() {
     }))
   }
 
+ 
   const handlePhotoUpload = async (caminoId, etapaId, file) => {
     if (!file) return
 
@@ -215,12 +303,14 @@ function Inicio() {
                   })
                 })
 
+
+
                 await fetch(`${apiURL}/api/usuarios/actualizar_nivel`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     usuario_id: usuarioId,
-                    nivel: 1
+                    nivel: premium? 2 : 1
                   })
                 })
 
@@ -237,7 +327,7 @@ function Inicio() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                       usuario_id: usuarioId,
-                      nivel: 5
+                      nivel: premium ? 10 : 5
                     })
                   })
 
@@ -337,6 +427,11 @@ function Inicio() {
   return (
     <div>
       <Navbar />
+      {
+        !premium && (
+          <ModalPremium />
+        )
+      }
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-6xl mx-auto px-4">
           {/* Header */}
@@ -376,7 +471,7 @@ function Inicio() {
 
               const totalEtapas = camino.etapas?.length || 0
               const progressPercentage = totalEtapas > 0 ? (completedCount / totalEtapas) * 100 : 0
-
+              
               return (
                 <div key={camino._id} className="bg-white rounded-lg shadow-md overflow-hidden">
                   {/* Camino Header */}
@@ -432,7 +527,7 @@ function Inicio() {
                           const isCompleted = completedEtapas[etapaKey]?.completed
                           const isUploading = uploadingPhoto[etapaKey]
                           const etapaData = completedEtapas[etapaKey]
-
+                          
                           return (
                             <div
                               key={etapa._id}
@@ -471,7 +566,7 @@ function Inicio() {
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center px-3 py-1.5 border border-blue-600 text-blue-600 text-xs font-medium rounded hover:bg-blue-600 hover:text-white transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 select-none cursor-pointer"
                                     >
-                                      📍 Ver mapa
+                                      📍 Cómo llegar
                                     </a>
                                     <button
                                       onClick={() => toggleEtapaInfo(etapa._id)}
@@ -523,6 +618,52 @@ function Inicio() {
                                     </div>
                                   )}
                                 </div>
+                                {/* MAPA Y DESCARGA */}
+                                {premium && userLocation && (
+                                  <button
+                                    onClick={() => handleEtapaClick(etapa)} // Abre el modal al hacer clic
+                                    className="mt-2 inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition"
+                                  >
+                                  Ver Mapa
+                                 </button>
+                                )}
+                                {/* Modal para mostrar el mapa */}
+                                {isModalOpen && (
+                                  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                                    <div className="bg-white rounded-lg p-6 w-11/12 md:w-1/2">
+                                      <h2 className="text-xl font-semibold mb-4">Mapa de {etapaActual?.nombre}</h2>
+                                      {etapaActual && (
+                                        <div className="mt-4 space-y-2">
+                                          <div id="mi-mapa" className="h-64 w-full rounded overflow-hidden shadow">
+                                            <MapContainer
+                                              center={[etapaActual.coordenadas.lat, etapaActual.coordenadas.lng]}
+                                              zoom={13}
+                                              scrollWheelZoom={false}
+                                              style={{ height: "100%", width: "100%" }}
+                                              whenCreated={setMap}
+                                            >
+                                              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                                              <Marker position={[userLocation.lat, userLocation.lng]}>
+                                                <Popup>Tu ubicación</Popup>
+                                              </Marker>
+                                              <Marker position={[etapaActual.coordenadas.lat, etapaActual.coordenadas.lng]}>
+                                                <Popup>{etapaActual.nombre}</Popup>
+                                              </Marker>
+                                              {routeData && <GeoJSON data={routeData} style={{ color: "blue", weight: 4 }} />}
+                                          </MapContainer>
+                                          </div>
+                                          <button
+                                            onClick={() => setIsModalOpen(false)}
+                                            className="mt-2 w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 bg-gray-300 text-gray-800 text-sm font-medium rounded hover:bg-gray-400 transition"
+                                          >
+                                            Cerrar
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
 
                                 {/* DERECHA */}
                                 {!isCompleted && (

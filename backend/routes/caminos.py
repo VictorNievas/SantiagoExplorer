@@ -81,9 +81,14 @@ def subir_imagen():
         return R * c
 
     distancia = calcular_distancia_metros(lat, lon, lat_etapa, lon_etapa)
-
-    if distancia > 300:
-        return jsonify({"error": f"Estás a {int(distancia)} m de la etapa. Debes estar a menos de 300 m para subir la foto."}), 403
+    usuario = mongo.db.usuarios.find_one({"_id": ObjectId(id_usuario)})
+    premium = usuario.get('premium')
+    if premium:
+        distancia_maxima = 1000
+    else:
+        distancia_maxima = 300
+    if distancia > distancia_maxima:
+        return jsonify({"error": f"Estás a {int(distancia)} m de la etapa. Debes estar a menos de {int(distancia_maxima)} m para subir la foto."}), 403
 
     # Paso 3: Subir imagen
     upload_result = cloudinary.uploader.upload(file_to_upload)
