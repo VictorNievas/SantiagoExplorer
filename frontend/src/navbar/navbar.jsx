@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
-import { AdMob } from '@capacitor-community/admob'
 
 
 const apiURL = process.env.REACT_APP_API_URL
