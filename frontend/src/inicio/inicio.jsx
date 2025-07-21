@@ -9,6 +9,8 @@ import 'leaflet/dist/leaflet.css';
 import leafletImage from "leaflet-image";
 import L from 'leaflet';
 import ModalPremium from "../modalPremium.jsx";
+import {Geolocation} from '@capacitor/geolocation'
+import { Capacitor } from "@capacitor/core";
 
 // Corrección para los iconos por defecto en Leaflet
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -169,17 +171,44 @@ function Inicio() {
         setLoading(false)
       })
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-        },
-        (err) => {
-          console.error("No se pudo obtener ubicación:", err);
+      const obtenerUbicacion = async () => {
+        if (Capacitor.isNativePlatform()) {
+          // 🌐 Código para Android / iOS
+          try {
+            const permiso = await Geolocation.requestPermissions();
+            if (permiso.location !== 'granted') {
+              alert('Debes permitir el acceso a la ubicación.');
+              return;
+            }
+
+            const coords = await Geolocation.getCurrentPosition();
+            setUserLocation({
+              lat: coords.coords.latitude,
+              lng: coords.coords.longitude,
+            });
+            console.log("Ubicación obtenida (nativo):", userLocation);
+          } catch (error) {
+            console.error("Error al obtener la ubicación (nativo):", error);
+          }
+        } else {
+          // 💻 Código para navegador web
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              setUserLocation({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              });
+            },
+            (err) => {
+              console.error("No se pudo obtener ubicación (web):", err);
+            }
+          );
         }
-      );
+      };
+
+      obtenerUbicacion();
+
+      
       if (isModalOpen) {
         setTimeout(() => {
           if (mapRef.current) {
@@ -189,6 +218,8 @@ function Inicio() {
         }, 300); // Espera a que el modal esté en el DOM
       }
   }, [])
+
+  
 
   const fetchRoute = async (from, to) => {
     const res = await fetch("https://api.openrouteservice.org/v2/directions/foot-walking/geojson", {

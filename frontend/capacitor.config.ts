@@ -5,8 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Santiago Explorer',
   webDir: 'build',
   server: {
-    cleartext: true,
-    androidScheme: "http"
+    androidScheme: 'https',
   },
   plugins: {
     SplashScreen: {

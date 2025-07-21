@@ -9,6 +9,7 @@ import LandingPage from "./landingpage/landingpage.jsx";
 import { useEffect } from 'react';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
+import PoliticaPrivacidad from "./politicaprivacidad/politicaprivacidad.jsx";
 
 function App() {
   const usuario = localStorage.getItem("usuario");
@@ -28,6 +29,7 @@ function App() {
         <Route path="/perfil" element={<PerfilUsuario />} />
         <Route path="/descubrir" element={<DescubrirSocial />} />
         <Route path="/configuracion" element={<Configuracion />} />
+        <Route path="/privacidad" element={<PoliticaPrivacidad />} />
       </Routes>
     </div>
   );

@@ -69,8 +69,16 @@ const LandingPage = () => {
 
       {/* Footer */}
       <footer className="bg-indigo-600 text-white py-6 text-center">
-        <p>© 2025 Santiago Explorer. Todos los derechos reservados. Victor Nievas Heredia</p>
+        <p>
+          © 2025 Santiago Explorer. Todos los derechos reservados. Victor Nievas Heredia
+        </p>
+        <p className="mt-2">
+          <a href="/privacidad" className="underline hover:text-gray-200">
+            Política de Privacidad
+          </a>
+        </p>
       </footer>
+
     </div>
   );
 };
