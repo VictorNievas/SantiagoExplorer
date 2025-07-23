@@ -225,7 +225,7 @@ def seguir_usuario():
 
     try:
         usuario_a_seguir = mongo.db.usuarios.find_one({'_id': ObjectId(usuario_a_seguir_id)})
-
+        usuario_solicitante = mongo.db.usuarios.find_one({'_id': ObjectId(usuario_id)})
         if not usuario_a_seguir:
             return jsonify({'error': 'Usuario a seguir no encontrado'}), 404
 
@@ -247,7 +247,7 @@ def seguir_usuario():
                 "id_etapa": None,
                 "fecha": datetime.now().isoformat(),
                 "leido": False,
-                "mensaje": f"{usuario_a_seguir['nombre']} {usuario_a_seguir['apellidos']} ha empezado a seguirte"
+                "mensaje": f"{usuario_solicitante['nombre']} {usuario_solicitante['apellidos']} ha empezado a seguirte"
             })
             return jsonify({'mensaje': 'Usuario seguido exitosamente'}), 200
         else:
@@ -264,7 +264,7 @@ def seguir_usuario():
                 "id_etapa": None,
                 "fecha": datetime.now().isoformat(),
                 "leido": False,
-                "mensaje": f"{usuario_a_seguir['nombre']} {usuario_a_seguir['apellidos']} ha solicitado seguirte"
+                "mensaje": f"{usuario_solicitante['nombre']} {usuario_solicitante['apellidos']} ha solicitado seguirte"
             })
             return jsonify({'mensaje': 'Solicitud de seguimiento enviada'}), 200
 
