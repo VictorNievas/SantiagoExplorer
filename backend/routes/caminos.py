@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, Response
 from bson.objectid import ObjectId
 from extensions import mongo
 import cloudinary
@@ -398,5 +398,18 @@ def comentar_etapa():
     except InvalidId:
         return jsonify({"error": "ID inválido"}), 400
 
+@caminos.route('/proxy-image')
+def proxy_image():
+    url = request.args.get('url')
+    if not url:
+        return {"error": "No URL provided"}, 400
+
+    try:
+        resp = requests.get(url, stream=True, timeout=10)
+        resp.raise_for_status()
+    except requests.RequestException:
+        return {"error": "Failed to fetch image"}, 500
+
+    return Response(resp.content, content_type=resp.headers.get('Content-Type', 'image/jpeg'))
 
 

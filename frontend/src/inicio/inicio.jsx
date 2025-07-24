@@ -11,6 +11,8 @@ import L from 'leaflet';
 import ModalPremium from "../modalPremium.jsx";
 import {Geolocation} from '@capacitor/geolocation'
 import { Capacitor } from "@capacitor/core";
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { XIcon, ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/solid";
 
 // Corrección para los iconos por defecto en Leaflet
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -103,13 +105,24 @@ function Inicio() {
   const [etapaActual, setEtapaActual] = useState(null); // Estado para la etapa actual
   const [isModalOpen, setIsModalOpen] = useState(false); // Estado para el modal
   const [premium, setPremium] = useState(false); // Estado para el premium
+  const [showModal, setShowModal] = useState(false);
+  const [currentImage, setCurrentImage] = useState(0);
+  const [caminoActual, setCaminoActual] = useState(null); // 🔥 importante
 
 
   const toggleEtapaInfo = (id) => {
     setExpandedInfoId((prevId) => (prevId === id ? null : id))
   }
 
+  const nextImage = (camino) => {
+    setCurrentImage((prev) => (prev + 1) % camino.imagenes.length);
+  };
 
+  const prevImage = (camino) => {
+    setCurrentImage((prev) =>
+      (prev - 1 + camino.imagenes.length) % camino.imagenes.length
+    );
+  };
   // Función helper para crear la clave compuesta
   const getEtapaKey = (caminoId, etapaId) => `${caminoId}_${etapaId}`
 
@@ -262,45 +275,75 @@ const handleEtapaClick = (etapa) => {
     }))
   }
 
- 
+  const getImageFile = async () => {
+  if (isApp()) {
+    // En app, usamos la cámara del móvil
+    const image = await Camera.getPhoto({
+      resultType: CameraResultType.Base64,
+      source: CameraSource.Camera,
+      quality: 90,
+    });
+
+    const blob = await fetch(`data:image/jpeg;base64,${image.base64String}`).then((res) =>
+      res.blob()
+    );
+    return blob;
+  } else {
+    // En web ya se usa el input file
+    return null;
+  }
+};
+const isApp = () => {
+  return window.Capacitor?.isNativePlatform?.() || !!(window.Capacitor && window.Capacitor.isNative);
+};
+
+
   const handlePhotoUpload = async (caminoId, etapaId, file) => {
-    if (!file) return
+  const etapaKey = getEtapaKey(caminoId, etapaId);
+  setUploadingPhoto((prev) => ({ ...prev, [etapaKey]: true }));
 
-    const etapaKey = getEtapaKey(caminoId, etapaId)
-    setUploadingPhoto((prev) => ({ ...prev, [etapaKey]: true }))
+  try {
+    // Si no hay archivo (porque estamos en app), usamos la cámara
+    if (!file && isApp()) {
+      file = await getImageFile();
+      if (!file) throw new Error("No se pudo obtener la imagen.");
+    }
 
-    // Obtener la ubicación
+    if (!file) {
+      alert("No se seleccionó ninguna imagen.");
+      setUploadingPhoto((prev) => ({ ...prev, [etapaKey]: false }));
+      return;
+    }
+
     if (!navigator.geolocation) {
-      alert("La geolocalización no está disponible en este navegador.")
-      setUploadingPhoto((prev) => ({ ...prev, [etapaKey]: false }))
-      return
+      alert("La geolocalización no está disponible en este navegador.");
+      setUploadingPhoto((prev) => ({ ...prev, [etapaKey]: false }));
+      return;
     }
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const lat = position.coords.latitude
-        const lon = position.coords.longitude
-        
-        // Preparar formData
-        const formData = new FormData()
-        formData.append("id_usuario", localStorage.getItem("usuario"))
-        formData.append("id_camino", caminoId)
-        formData.append("id_etapa", etapaId)
-        formData.append("file", file)
-        formData.append("lat", lat)
-        formData.append("lon", lon)
-        formData.append("fecha", new Date().toISOString())
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        const formData = new FormData();
+        formData.append("id_usuario", localStorage.getItem("usuario"));
+        formData.append("id_camino", caminoId);
+        formData.append("id_etapa", etapaId);
+        formData.append("file", file);
+        formData.append("lat", lat);
+        formData.append("lon", lon);
+        formData.append("fecha", new Date().toISOString());
 
         try {
           const response = await fetch(`${apiURL}/api/caminos/subir_imagen`, {
             method: "POST",
             body: formData,
-          })
+          });
 
-          const result = await response.json()
+          const result = await response.json();
 
           if (response.ok) {
-            // Actualizar el estado local
             setCompletedEtapas((prev) => ({
               ...prev,
               [etapaKey]: {
@@ -310,88 +353,95 @@ const handleEtapaClick = (etapa) => {
                 caminoId: caminoId,
                 etapaId: etapaId,
               },
-            }))
+            }));
 
-            alert("¡Etapa completada exitosamente!")
-            //Anadir un nivel al usuario y anadir los kilometros recorridos
-            try{
-              const response = await fetch(`${apiURL}/api/caminos/get_camino?camino_id=${caminoId}`, {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json' }
-              });
-              
-              const camino = await response.json()
-              if(response.ok) {
-                const distanciaRecorrida = camino.etapas[etapaId-1].distancia_km || 0
-                const usuarioId = localStorage.getItem('usuario')
+            alert("¡Etapa completada exitosamente!");
+
+            try {
+              const response = await fetch(
+                `${apiURL}/api/caminos/get_camino?camino_id=${caminoId}`,
+                {
+                  method: "GET",
+                  headers: { "Content-Type": "application/json" },
+                }
+              );
+
+              const camino = await response.json();
+              if (response.ok) {
+                const distanciaRecorrida =
+                  camino.etapas[etapaId - 1].distancia_km || 0;
+                const usuarioId = localStorage.getItem("usuario");
 
                 await fetch(`${apiURL}/api/usuarios/actualizar_distancia`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     usuario_id: usuarioId,
-                    distancia_recorrida: distanciaRecorrida
-                  })
-                })
-
-
+                    distancia_recorrida: distanciaRecorrida,
+                  }),
+                });
 
                 await fetch(`${apiURL}/api/usuarios/actualizar_nivel`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     usuario_id: usuarioId,
-                    nivel: premium? 2 : 1
-                  })
-                })
+                    nivel: premium ? 2 : 1,
+                  }),
+                });
 
                 const completedCount =
-                camino.etapas?.filter((etapa) => {
-                  const etapaKey = getEtapaKey(camino._id, etapa._id)
-                  return completedEtapas[etapaKey]?.completed
-                }).length || 0
+                  camino.etapas?.filter((etapa) => {
+                    const etapaKey = getEtapaKey(camino._id, etapa._id);
+                    return completedEtapas[etapaKey]?.completed;
+                  }).length || 0;
 
-                const totalEtapas = camino.etapas?.length || 0
+                const totalEtapas = camino.etapas?.length || 0;
                 if (completedCount === totalEtapas) {
                   await fetch(`${apiURL}/api/usuarios/actualizar_nivel`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                       usuario_id: usuarioId,
-                      nivel: premium ? 10 : 5
-                    })
-                  })
+                      nivel: premium ? 10 : 5,
+                    }),
+                  });
 
                   await fetch(`${apiURL}/api/usuarios/anadir_logro`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                       usuario_id: usuarioId,
                       camino_id: caminoId,
-                    })
-                  })
+                    }),
+                  });
                 }
               }
-            }
-            catch (error) {
-              console.error(error)
+            } catch (error) {
+              console.error(error);
             }
           } else {
-            alert(`Error al subir la foto: ${result.error || "Error desconocido"}`)
+            alert(`Error al subir la foto: ${result.error || "Error desconocido"}`);
           }
         } catch (error) {
-          console.error("Error al subir la foto:", error)
-          alert("Error al subir la foto.")
+          console.error("Error al subir la foto:", error);
+          alert("Error al subir la foto.");
         } finally {
-          setUploadingPhoto((prev) => ({ ...prev, [etapaKey]: false }))
+          setUploadingPhoto((prev) => ({ ...prev, [etapaKey]: false }));
         }
       },
       (error) => {
-        alert("No se pudo obtener tu ubicación: " + error.message)
-        setUploadingPhoto((prev) => ({ ...prev, [etapaKey]: false }))
-      },
-    )
+        alert("No se pudo obtener tu ubicación: " + error.message);
+        setUploadingPhoto((prev) => ({ ...prev, [etapaKey]: false }));
+      }
+    );
+  } catch (err) {
+    console.error(err);
+    alert("Error al procesar la imagen.");
+    setUploadingPhoto((prev) => ({ ...prev, [etapaKey]: false }));
   }
+};
+
 
   const caminosFiltrados = caminos.filter(c => 
     c.nombre.toLowerCase().includes(busqueda.toLowerCase())
@@ -507,7 +557,7 @@ const handleEtapaClick = (etapa) => {
                 <div key={camino._id} className="bg-white rounded-lg shadow-md overflow-hidden">
                   {/* Camino Header */}
                   <div className="p-6 border-b border-gray-200">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-2">
                           <MapIcon className="w-6 h-6 text-blue-600" />
@@ -536,15 +586,103 @@ const handleEtapaClick = (etapa) => {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => toggleCamino(camino._id)}
-                        className="ml-4 flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
-                      >
-                        <span>{isExpanded ? "Ocultar" : "Ver más"}</span>
-                        <ChevronDownIcon
-                          className={`w-4 h-4 transform transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
-                        />
-                      </button>
+                      <div className="mt-4 sm:mt-0 flex flex-row sm:flex-col space-x-4 sm:space-x-0 sm:space-y-2">
+                        <button
+                          onClick={() => toggleCamino(camino._id)}
+                          className="flex-1 sm:flex-none flex justify-center items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 text-center"
+                        >
+                          <span>{isExpanded ? "Ocultar" : "Ver más"}</span>
+                          <ChevronDownIcon
+                            className={`w-4 h-4 transform transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                          />
+                        </button>
+
+                        {camino.imagenes?.length > 0 && (
+                          <button
+                            onClick={() => {
+                              setCurrentImage(0);
+                              setCaminoActual(camino);
+                              setShowModal(true);
+                            }}
+                            className="flex-1 sm:flex-none flex justify-center items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 text-center"
+                          >
+                            <span>Ver imágenes</span>
+                          </button>
+                        )}
+                      </div>
+
+
+                      
+
+                      {/* Modal de Imágenes */}
+                      {showModal && caminoActual?.imagenes?.length > 0 && (
+                        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+                          <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-auto p-6 shadow-lg relative text-center flex flex-col items-center">
+                            
+                            {/* Cerrar modal */}
+                            <button
+                              onClick={() => {
+                                setShowModal(false);
+                                setCaminoActual(null);
+                              }}
+                              className="absolute top-4 right-4 text-gray-500 hover:text-gray-800"
+                              aria-label="Cerrar"
+                            >
+                              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+
+                            {/* Imagen */}
+                            <img
+                              src={`${process.env.REACT_APP_API_URL}/api/caminos/proxy-image?url=${encodeURIComponent(caminoActual.imagenes[currentImage].url)}`}
+                              alt={caminoActual.imagenes[currentImage]?.texto || "Imagen sin descripción"}
+                              className="max-h-[60vh] w-full object-contain rounded-lg mb-4"
+                            />
+
+                            {/* Texto de la imagen */}
+                            <p className="text-gray-700 text-sm mb-4 px-2">
+                              {caminoActual.imagenes[currentImage]?.texto || "Sin descripción"}
+                            </p>
+
+                            {/* Controles de navegación */}
+                            <div className="flex justify-between items-center w-full">
+                              <button
+                                onClick={() =>
+                                  setCurrentImage(
+                                    (prev) =>
+                                      (prev - 1 + caminoActual.imagenes.length) %
+                                      caminoActual.imagenes.length
+                                  )
+                                }
+                                className="p-2 bg-gray-200 hover:bg-gray-300 rounded-full"
+                              >
+                                <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                                </svg>
+                              </button>
+
+                              <span className="text-sm text-gray-600">
+                                Imagen {currentImage + 1} de {caminoActual.imagenes.length}
+                              </span>
+
+                              <button
+                                onClick={() =>
+                                  setCurrentImage(
+                                    (prev) => (prev + 1) % caminoActual.imagenes.length
+                                  )
+                                }
+                                className="p-2 bg-gray-200 hover:bg-gray-300 rounded-full"
+                              >
+                                <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                     </div>
                   </div>
 
@@ -707,6 +845,7 @@ const handleEtapaClick = (etapa) => {
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                         disabled={isUploading}
                                       />
+
                                       <button
                                         className={`w-full sm:w-auto flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
                                           isUploading
